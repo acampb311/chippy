@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct chippyApp: App {
+
     var body: some Scene {
         WindowGroup {
             ContentView()
