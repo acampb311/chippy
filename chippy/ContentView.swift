@@ -23,8 +23,14 @@ struct ContentView : View {
                                              (UInt32(self.chip8.ram[Int(self.chip8.PC)+1]) << 0) )
                     print(String(format:"%04x", instruction))
                     let fg = Opcode(instruction: instruction)
-                    if let operation = self.chip8.functions[fg] {
-                        operation(fg, &self.chip8)
+                    if let operation = self.chip8.opcodeMap[fg] {
+                     do {
+                        try operation(fg, &self.chip8)
+                     }
+                     catch {
+                        print("error calling operation")
+                     }
+                        
                     } else {
                         print("Unknown Operation")
                     }
