@@ -14,13 +14,16 @@ let REGISTER_SIZE = 16
 enum Chip8Error: Error {
    case invalidParameterForOpcode
    case invalidOpcodeContents
+   case opcodeNotImplemented
 }
 
 class Chip8 : ObservableObject {
    var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
    var I: UInt16 = 0x00
    var PC: UInt16 = 0x00
-   var SP: UInt8 = 0x0
+   var SP: UInt8 = 0x00
+   var DT: UInt8 = 0x00
+   var ST: UInt8 = 0x00
    var ram: [UInt8] = [UInt8](repeatElement(0x00, count: RAM_SIZE))
    var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
    
@@ -53,7 +56,7 @@ class Chip8 : ObservableObject {
    
    var display: Display = Display(pixelsWide: 64, pixelsHigh: 32)
    
-   let opcodeMap : [Opcode : (Opcode, inout Chip8) throws -> Void] =
+   let opcodeMap =
       [Opcode(0x0, 0x0, 0xE, 0x0): CLS,
        Opcode(0x0, 0x0, 0xE, 0xE): RTS,
        Opcode(0x1, nil, nil, nil): JUMP,
@@ -96,6 +99,10 @@ class Chip8 : ObservableObject {
 ///   - opcode: 0x00E0
 ///   - chip: chip8 instance to operate on
 func CLS(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0x0, 0x0, 0xE, 0x0) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
+   
    chip.display.Clear()
 }
 
@@ -104,6 +111,10 @@ func CLS(opcode: Opcode, chip: inout Chip8) throws {
 ///   - opcode: 0x00EE
 ///   - chip: chip8 instance to operate on
 func RTS(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0x0, 0x0, 0xE, 0xE) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
+   
    chip.PC = chip.stack[Int(chip.SP)]
    chip.SP = chip.SP - 1
 }
@@ -112,10 +123,12 @@ func RTS(opcode: Opcode, chip: inout Chip8) throws {
 /// The interpreter sets the program counter to nnn.
 /// - Parameter operation: 1nnn - JP addr
 func JUMP(opcode: Opcode, chip: inout Chip8) throws {
-   guard let address = opcode.GetNNN()
-   else {
-      print("Error - Function: \(#function), line: \(#line)")
-      return
+   if opcode != Opcode(1, nil, nil, nil) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
+   
+   guard let address = opcode.GetNNN() else {
+      throw Chip8Error.invalidOpcodeContents
    }
    
    chip.PC = address
@@ -205,8 +218,7 @@ func LOAD(opcode: Opcode, chip: inout Chip8) throws {
    guard let value = opcode.GetNN(),
          let xIndex = opcode.GetX()
    else {
-      print("Error - Function: \(#function), line: \(#line)")
-      return
+      throw Chip8Error.invalidOpcodeContents
    }
    
    chip.registers[xIndex] = value
@@ -223,11 +235,11 @@ func ADD(opcode: Opcode, chip: inout Chip8) throws {
    guard let value = opcode.GetNN(),
          let xIndex = opcode.GetX()
    else {
-      print("Error - Function: \(#function), line: \(#line)")
-      return
+      throw Chip8Error.invalidOpcodeContents
    }
-   
-   chip.registers[xIndex] += value
+      
+   let total: Int = Int(chip.registers[xIndex]) + Int(value)
+   chip.registers[xIndex] = UInt8(total & 0xFF)
 }
 
 /// Set Vx = Vy.
@@ -458,6 +470,17 @@ func JUMPI(opcode: Opcode, chip: inout Chip8) throws {
 /// - Parameter operation: Cxkk - RND Vx, byte
 func RAND(opcode: Opcode, chip: inout Chip8) throws {
    
+   if opcode != Opcode(0xC, nil, nil, nil) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
+   
+   guard let value = opcode.GetNN(),
+         let xIndex = opcode.GetX()
+   else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   chip.registers[xIndex] = UInt8(Int.random(in: 0..<256)) & value
 }
 
 /// Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
@@ -472,8 +495,7 @@ func DRAW(opcode: Opcode, chip: inout Chip8) throws {
          let yIndex = opcode.GetY(),
          let mheight = opcode.GetN()
    else {
-      print("Error - Function: \(#function), line: \(#line)")
-      return
+      throw Chip8Error.invalidOpcodeContents
    }
    
    let opx = chip.registers[xIndex]
@@ -504,75 +526,137 @@ func DRAW(opcode: Opcode, chip: inout Chip8) throws {
 /// Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
 /// - Parameter operation: Ex9E - SKP Vx
 func SKPR(opcode: Opcode, chip: inout Chip8) throws {
-   
+   throw Chip8Error.opcodeNotImplemented
 }
 
 /// Skip next instruction if key with the value of Vx is not pressed.
 /// Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
 /// - Parameter operation: ExA1 - SKNP Vx
 func SKUP(opcode: Opcode, chip: inout Chip8) throws {
-   
+   throw Chip8Error.opcodeNotImplemented
 }
 
 /// Set Vx = delay timer value.
 /// The value of DT is placed into Vx.
 /// - Parameter operation: Fx07 - LD Vx, DT
 func MOVED(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0xF, nil, 0x0, 0x7) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
    
+   guard let xIndex = opcode.GetX() else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   chip.registers[xIndex] = chip.DT
 }
 
 /// Wait for a key press, store the value of the key in Vx.
 /// All execution stops until a key is pressed, then the value of that key is stored in Vx.
 /// - Parameter operation: Fx0A - LD Vx, K
 func KEYD(opcode: Opcode, chip: inout Chip8) throws {
-   
+   throw Chip8Error.opcodeNotImplemented
 }
 
 /// Set delay timer = Vx.
 /// DT is set equal to the value of Vx.
 /// - Parameter operation: Fx15 - LD DT, Vx
 func LOADD(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0xF, nil, 0x1, 0x5) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
    
+   guard let xIndex = opcode.GetX() else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   chip.DT = chip.registers[xIndex]
 }
 
 /// Set sound timer = Vx.
 /// ST is set equal to the value of Vx.
 /// - Parameter operation: Fx18 - LD ST, Vx
 func LOADS(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0xF, nil, 0x1, 0x8) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
    
+   guard let xIndex = opcode.GetX() else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   chip.ST = chip.registers[xIndex]
 }
 
 /// Set I = I + Vx.
 /// The values of I and Vx are added, and the results are stored in I.
 /// - Parameter operation: Fx1E - ADD I, Vx
 func ADDI(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0xF, nil, 0x1, 0xE) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
    
+   guard let xIndex = opcode.GetX() else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   chip.I += UInt16(chip.registers[xIndex])
 }
 
 /// Set I = location of sprite for digit Vx.
 /// The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx.
 /// - Parameter operation: Fx29 - LD F, Vx
 func LDSPR(opcode: Opcode, chip: inout Chip8) throws {
-   
+   throw Chip8Error.opcodeNotImplemented
 }
 
 /// Store BCD representation of Vx in memory locations I, I+1, and I+2.
 /// The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
 /// - Parameter operation: Fx33 - LD B, Vx
 func BCD(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0xF, nil, 0x3, 0x3) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
    
+   guard let xIndex = opcode.GetX() else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   chip.ram[Int(chip.I + 0)] = UInt8((Int(chip.registers[xIndex]) / 100) % 10)
+   chip.ram[Int(chip.I + 1)] = UInt8((Int(chip.registers[xIndex]) / 10 ) % 10)
+   chip.ram[Int(chip.I + 2)] = UInt8((Int(chip.registers[xIndex]) / 1  ) % 10)
 }
 
 /// Store registers V0 through Vx in memory starting at location I.
 /// The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
 /// - Parameter operation: Fx55 - LD [I], Vx
 func STOR(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0xF, nil, 0x5, 0x5) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
    
+   guard let xIndex = opcode.GetX() else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   for n in 0...xIndex {
+      chip.ram[Int(chip.I) + n] = chip.registers[n]
+   }
 }
 
 /// Read registers V0 through Vx from memory starting at location I.
 /// The interpreter reads values from memory starting at location I into registers V0 through Vx.
 /// - Parameter operation: Fx65 - LD Vx, [I]
 func READ(opcode: Opcode, chip: inout Chip8) throws {
+   if opcode != Opcode(0xF, nil, 0x6, 0x5) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
    
+   guard let xIndex = opcode.GetX() else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   for n in 0...xIndex {
+      chip.registers[n] = chip.ram[Int(chip.I) + n]
+   }
 }

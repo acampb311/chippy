@@ -358,4 +358,142 @@ class chippyTests: XCTestCase {
       // Then
       XCTAssertEqual(chip8.PC, 0xABD)
    }
+   
+   func testSetVxToDelayTimer() throws {
+      // Given
+      var chip8 = Chip8()
+      
+      chip8.registers = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
+      
+      chip8.DT = 0x45
+      
+      // When
+      try MOVED(opcode: Opcode(instruction: 0xF007), chip: &chip8)
+      
+      // Then
+      XCTAssertEqual(chip8.registers, [0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA])
+   }
+   
+   func testSetDelayTimerToVx() throws {
+      // Given
+      var chip8 = Chip8()
+      
+      chip8.registers = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
+      
+      chip8.DT = 0x45
+      
+      // When
+      try LOADD(opcode: Opcode(instruction: 0xF015), chip: &chip8)
+      
+      // Then
+      XCTAssertEqual(chip8.DT, 0x01)
+   }
+   
+   func testSetSoundTimerToVx() throws {
+      // Given
+      var chip8 = Chip8()
+      
+      chip8.registers = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
+      
+      chip8.ST = 0x45
+      
+      // When
+      try LOADS(opcode: Opcode(instruction: 0xF018), chip: &chip8)
+      
+      // Then
+      XCTAssertEqual(chip8.ST, 0x01)
+   }
+   
+   func testAddIandReg() throws {
+      // Given
+      var chip8 = Chip8()
+      
+      chip8.registers = [0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
+      
+      chip8.I = 0x45
+      
+      // When
+      try ADDI(opcode: Opcode(instruction: 0xF01E), chip: &chip8)
+      
+      // Then
+      XCTAssertEqual(chip8.I, 0x56)
+   }
+   
+   func testBinaryCodedDecimal() throws {
+      // Given
+      var chip8 = Chip8()
+      
+      chip8.I = 0x100
+            
+      chip8.registers = [245, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
+      
+      // When
+      try BCD(opcode: Opcode(instruction: 0xF033), chip: &chip8)
+      
+      // Then
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 0)], 2)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 1)], 4)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 2)], 5)
+   }
+   
+   func testStoreRegistersInMemory() throws {
+      // Given
+      var chip8 = Chip8()
+      
+      chip8.I = 0x100
+            
+      chip8.registers = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
+      
+      // When
+      try STOR(opcode: Opcode(instruction: 0xFF55), chip: &chip8)
+      
+      // Then
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 0)], 0)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 1)], 1)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 2)], 2)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 3)], 3)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 4)], 4)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 5)], 5)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 6)], 6)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 7)], 7)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 8)], 8)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 9)], 9)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 10)], 10)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 11)], 11)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 12)], 12)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 13)], 13)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 14)], 14)
+      XCTAssertEqual(chip8.ram[Int(chip8.I + 15)], 15)
+
+   }
+   
+   func testLoadMemoryIntoRegisters() throws {
+      // Given
+      var chip8 = Chip8()
+      
+      chip8.I = 0x100
+      
+      chip8.ram[Int(chip8.I) + 0] = 0x00
+      chip8.ram[Int(chip8.I) + 1] = 0x01
+      chip8.ram[Int(chip8.I) + 2] = 0x02
+      chip8.ram[Int(chip8.I) + 3] = 0x03
+      chip8.ram[Int(chip8.I) + 4] = 0x04
+      chip8.ram[Int(chip8.I) + 5] = 0x05
+      chip8.ram[Int(chip8.I) + 6] = 0x06
+      chip8.ram[Int(chip8.I) + 7] = 0x07
+      chip8.ram[Int(chip8.I) + 8] = 0x08
+      chip8.ram[Int(chip8.I) + 9] = 0x09
+      chip8.ram[Int(chip8.I) + 10] = 0x0A
+      chip8.ram[Int(chip8.I) + 11] = 0x0B
+      chip8.ram[Int(chip8.I) + 12] = 0x0C
+      chip8.ram[Int(chip8.I) + 13] = 0x0D
+      chip8.ram[Int(chip8.I) + 14] = 0x0E
+      chip8.ram[Int(chip8.I) + 15] = 0x0F
+      
+      // When
+      try READ(opcode: Opcode(instruction: 0xFF65), chip: &chip8)
+      
+      // Then
+      XCTAssertEqual(chip8.registers, [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F])
+   }
 }
