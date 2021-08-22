@@ -21,7 +21,7 @@ class chippyTests: XCTestCase {
       try RTS(opcode: Opcode(instruction: 0x00EE), chip: &chip8)
       
       // Then
-      XCTAssertEqual(chip8.PC, 0x05)
+      XCTAssertEqual(chip8.PC, 0x07)
       XCTAssertEqual(chip8.SP, 0x04)
    }
    
@@ -107,13 +107,13 @@ class chippyTests: XCTestCase {
       try SKE(opcode: Opcode(instruction: 0x3FAB), chip: &chip8)
       
       // Then
-      XCTAssertEqual(chip8.PC, 0x02)
+      XCTAssertEqual(chip8.PC, 0x04)
       
       // When
       try SKE(opcode: Opcode(instruction: 0x3FAA), chip: &chip8)
       
       // Then
-      XCTAssertEqual(chip8.PC, 0x04)
+      XCTAssertEqual(chip8.PC, 0x08)
    }
    
    func testSkipNextInstrNotEqual() throws {
@@ -128,13 +128,13 @@ class chippyTests: XCTestCase {
       try SKNE(opcode: Opcode(instruction: 0x4FAB), chip: &chip8)
       
       // Then
-      XCTAssertEqual(chip8.PC, 0x04)
+      XCTAssertEqual(chip8.PC, 0x06)
       
       // When
       try SKNE(opcode: Opcode(instruction: 0x4FAA), chip: &chip8)
       
       // Then
-      XCTAssertEqual(chip8.PC, 0x04)
+      XCTAssertEqual(chip8.PC, 0x08)
    }
    
    func testSkipNextInstrRegistersEqual() throws {
@@ -149,13 +149,13 @@ class chippyTests: XCTestCase {
       try SKRE(opcode: Opcode(instruction: 0x5F00), chip: &chip8)
       
       // Then
-      XCTAssertEqual(chip8.PC, 0x02)
+      XCTAssertEqual(chip8.PC, 0x04)
       
       // When
       try SKRE(opcode: Opcode(instruction: 0x5F10), chip: &chip8)
 
       // Then
-      XCTAssertEqual(chip8.PC, 0x04)
+      XCTAssertEqual(chip8.PC, 0x08)
    }
    
    func testStoreXinY() throws {
@@ -332,7 +332,7 @@ class chippyTests: XCTestCase {
       try SKRNE(opcode: Opcode(instruction: 0x9010), chip: &chip8)
       
       // Then
-      XCTAssertEqual(chip8.PC, 0x04)
+      XCTAssertEqual(chip8.PC, 0x06)
       
       // Given
       chip8.registers = [0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
@@ -343,7 +343,7 @@ class chippyTests: XCTestCase {
       try SKRNE(opcode: Opcode(instruction: 0x9010), chip: &chip8)
 
       // Then
-      XCTAssertEqual(chip8.PC, 0x02)
+      XCTAssertEqual(chip8.PC, 0x04)
    }
    
    func testJumpToLocationWithReg() throws {

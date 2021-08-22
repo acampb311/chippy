@@ -39,9 +39,7 @@ struct Opcode: Hashable {
          return nil
       }
       
-      return  UInt16(tempSecond) << 8 |
-         UInt16(tempThird)  << 4 |
-         UInt16(tempFourth) << 0
+      return (UInt16(tempSecond) << 8 + UInt16(tempThird) << 4 + UInt16(tempFourth) << 0) & 0x0FFF
    }
    
    /// Opcodes in the Chip8 spec utilize the lower two bytes specify an 8 bit constant value
@@ -54,7 +52,7 @@ struct Opcode: Hashable {
          return nil
       }
       
-      return UInt8(tempThird)  << 4 |
+      return UInt8(tempThird) << 4 +
          UInt8(tempFourth) << 0
    }
    
