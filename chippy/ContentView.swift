@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SpriteKit
 
 struct ContentView : View {
    @State private var chip8 = Chip8()
@@ -25,9 +26,14 @@ struct ContentView : View {
             ConfigurationView(currentChip: self.$chip8)
             KeyboardView(currentChip: self.$chip8)
          }
-         image?
-            .resizable()
-            .scaledToFit()
+         SpriteView(scene: chip8.newDisplay)
+            .frame(width: 640, height: 320)
+         
+//
+//            .scaledToFit()
+//         image?
+//            .resizable()
+//            .scaledToFit()
       }
    }
    
@@ -66,6 +72,7 @@ struct ContentView : View {
       ]
       
       var body: some View {
+         
          DisclosureGroup(
             content: {
                VStack {
