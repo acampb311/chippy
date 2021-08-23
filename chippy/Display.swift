@@ -7,90 +7,69 @@
 
 import Foundation
 import SwiftUI
+import SpriteKit
 
-struct Pixel {
-    var offset: Int
-    var color: RGBA32
-}
-
-struct Display {
-    var width: Int
-    var height: Int
-    var context: CGContext?
-    let colorSpace: CGColorSpace = CGColorSpaceCreateDeviceRGB()
-    let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
-    var bitmapData: UnsafeMutableRawPointer?
-    var bitmapByteCount: Int
-    var bitmapBytesPerRow: Int
-    var currDisplay: CGImage?
-    
-    var pixelBuffer: UnsafeMutablePointer<RGBA32>?
-    var size: NSSize = NSSize(width: 0, height: 0)
-    
-    init(pixelsWide: Int, pixelsHigh: Int) {
-        self.width = pixelsWide
-        self.height = pixelsHigh
-        self.bitmapBytesPerRow = (pixelsWide * 4)
-        self.bitmapByteCount = (bitmapBytesPerRow * pixelsHigh)
-        self.size = NSSize(width: pixelsWide, height: pixelsHigh)
-        bitmapData = UnsafeMutableRawPointer.allocate(byteCount: self.bitmapByteCount, alignment: 1)
-        
-        guard let bitmapData = bitmapData else {
-            print("Display:init() Memory not allocated!")
-            return
-        }
-        
-        pixelBuffer = bitmapData.bindMemory(to: RGBA32.self, capacity: width * height)
-        
-        guard pixelBuffer != nil else {
-            print("Display:init() Memory not allocated!")
-            return
-        }
-        
-        context = CGContext(data: bitmapData, width: self.width, height: self.height, bitsPerComponent: 8, bytesPerRow: self.bitmapBytesPerRow, space: self.colorSpace, bitmapInfo: self.bitmapInfo)
-        
-        DrawCurrentBitmap()
-    }
-    
-    mutating func DrawCurrentBitmap() {
-        if let myContext = context {
-            currDisplay = myContext.makeImage()
-        } else {
-            print("Display:init() Context not created!")
-            return
-        }
-    }
-    
-    mutating func DrawPixels(pixels: [Pixel]) -> Bool {
-        var pixelAlreadySet = false
-        
-        for pixel in pixels {
-            if let pixelBuffer = pixelBuffer {
-                if (pixelBuffer[pixel.offset] == pixel.color) {
-                    pixelAlreadySet = true
-                }
-                
-                pixelBuffer[pixel.offset] = pixel.color
-            }
-        }
-        
-        DrawCurrentBitmap()
-        
-        return pixelAlreadySet
-    }
-    
-    func ToImage() -> Image {
-        return Image(nsImage: NSImage(cgImage: self.currDisplay!, size: self.size)).interpolation(.none)
-    }
-    
-    mutating func Clear() {
-        for row in 0 ..< Int(height) {
-            for column in 0 ..< Int(width) {
-                let offset = row * width + column
-                pixelBuffer![offset] = .black
-            }
-        }
-        
-        DrawCurrentBitmap()
-    }
+class Display : SKScene, ObservableObject {
+   var pixels: [SKSpriteNode] = []
+   var height: Int = 0
+   var width: Int = 0
+   var displayForegroundColor: NSColor = .white
+   var displayBackgroundColor: NSColor = .black
+   
+   func createDisplay(pixelsWide: Int, pixelsHigh: Int) {
+      self.height = pixelsHigh
+      self.width = pixelsWide
+      
+      for y in 0..<pixelsHigh {
+         for x in 0..<pixelsWide {
+            let location = CGPoint(x: Double(x)+0.5, y: Double(y)+0.5)
+            let box = SKSpriteNode(color: SKColor.black, size: CGSize(width: 1, height: 1))
+            
+            box.position = location
+            pixels.append(box)
+            addChild(box)
+         }
+      }
+   }
+   
+   //   ┌──────────────────────────────┐
+   //   │  (0,0)               (X-1,0) │
+   //   │                              │
+   //   │                              │
+   //   │                              │
+   //   │                              │
+   //   │ (0,Y-1)             (X-1,Y-1)│
+   //   └──────────────────────────────┘
+   func setPixel(x: Int, y: Int) -> Bool {
+      var collision = false
+      guard x < width, y < height else {
+         print("bad num")
+         return collision
+      }
+      
+      if pixels[(height - 1 - y) * 64 + x].color == displayForegroundColor {
+         collision = true
+      }
+      
+      pixels[(height - 1 - y) * 64 + x].color = displayForegroundColor
+      
+      return collision
+   }
+   
+   //   ┌──────────────────────────────┐
+   //   │  (0,0)               (X-1,0) │
+   //   │                              │
+   //   │                              │
+   //   │                              │
+   //   │                              │
+   //   │ (0,Y-1)             (X-1,Y-1)│
+   //   └──────────────────────────────┘
+   func clearPixel(x: Int, y: Int) {
+      guard x < width, y < height else {
+         print("bad num")
+         return
+      }
+      
+      pixels[(height - 1 - y) * 64 + x].color = displayBackgroundColor
+   }
 }

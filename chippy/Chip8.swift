@@ -12,64 +12,6 @@ let STACK_SIZE = 16
 let RAM_SIZE = 4096
 let REGISTER_SIZE = 16
 
-class Display2 : SKScene, ObservableObject {
-   var pixels: [SKSpriteNode] = []
-   var height: Int = 0
-   var width: Int = 0
-   var displayForegroundColor: NSColor = .white
-   var displayBackgroundColor: NSColor = .black
-   
-   func createDisplay(pixelsWide: Int, pixelsHigh: Int) {
-      self.height = pixelsHigh
-      self.width = pixelsWide
-      
-      for y in 0..<pixelsHigh {
-         for x in 0..<pixelsWide {
-            let location = CGPoint(x: Double(x)+0.5, y: Double(y)+0.5)
-            let box = SKSpriteNode(color: SKColor.black, size: CGSize(width: 1, height: 1))
-            
-            box.position = location
-            pixels.append(box)
-            addChild(box)
-         }
-      }
-   }
-   
-   //   ┌──────────────────────────────┐
-   //   │  (0,0)               (X-1,0) │
-   //   │                              │
-   //   │                              │
-   //   │                              │
-   //   │                              │
-   //   │ (0,Y-1)             (X-1,Y-1)│
-   //   └──────────────────────────────┘
-   func setPixel(x: Int, y: Int) {
-      guard x < width, y < height else {
-         print("bad num")
-         return
-      }
-      pixels[(height - 1 - y) * 64 + x].color = displayForegroundColor
-   }
-   
-   //   ┌──────────────────────────────┐
-   //   │  (0,0)               (X-1,0) │
-   //   │                              │
-   //   │                              │
-   //   │                              │
-   //   │                              │
-   //   │ (0,Y-1)             (X-1,Y-1)│
-   //   └──────────────────────────────┘
-   func clearPixel(x: Int, y: Int) {
-      guard x < width, y < height else {
-         print("bad num")
-         return
-      }
-      
-      pixels[(height - 1 - y) * 64 + x].color = displayBackgroundColor
-   }
-}
-
-
 enum Chip8Error: Error {
    case invalidParameterForOpcode
    case invalidOpcodeContents
@@ -85,9 +27,7 @@ class Chip8 : ObservableObject {
    var ST: UInt8 = 0x00
    var ram: [UInt8] = [UInt8](repeatElement(0x00, count: RAM_SIZE))
    var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
-   var newDisplay: Display2
-//   var executionTimer: Timer
-//   var image: Image
+   var display: Display
    
    let font: [UInt8] = [ 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                          0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -109,13 +49,10 @@ class Chip8 : ObservableObject {
    
    init() {
       ram.replaceSubrange(0x0..<font.count, with: font)
-      newDisplay =  Display2()
-      newDisplay.size = CGSize(width: 64, height: 32)
-      newDisplay.scaleMode = .aspectFill
-      newDisplay.createDisplay(pixelsWide: 64, pixelsHigh: 32)
-//      executionTimer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(step), userInfo: nil, repeats: true)
-//      image = self.display.ToImage()
-//      self.display.Clear()
+      display =  Display()
+      display.size = CGSize(width: 64, height: 32)
+      display.scaleMode = .aspectFill
+      display.createDisplay(pixelsWide: 64, pixelsHigh: 32)
    }
    
    func step(chip: inout Chip8) {
@@ -125,11 +62,10 @@ class Chip8 : ObservableObject {
       {
          let instruction = UInt32((UInt32(chip.ram[Int(chip.PC)+0]) << 8) |
                                   (UInt32(chip.ram[Int(chip.PC)+1]) << 0) )
-//         print(String(format:"PC: %04X; ", chip.PC) + String(format:"Opcode %04X", instruction), terminator:" ")
-         let fg = Opcode(instruction: instruction)
-         if let operation = chip.opcodeMap[fg] {
+
+         if let operation = chip.opcodeMap[Opcode(instruction: instruction)] {
             do {
-               try operation(fg, &chip)
+               try operation(Opcode(instruction: instruction), &chip)
             }
             catch {
                print("error calling operation. \(error)")
@@ -141,8 +77,6 @@ class Chip8 : ObservableObject {
             break
          }
 
-//         image = self.chip8.display.ToImage()
-//         usleep(2000)
          count+=1
       }
    }
@@ -151,9 +85,7 @@ class Chip8 : ObservableObject {
       ram.replaceSubrange(0x200..<rom.count+0x200, with: rom)
       PC = 0x200 //Chip8 roms are traditionally loaded starting at byte 512, 0x200
    }
-   
-   var display: Display = Display(pixelsWide: 64, pixelsHigh: 32)
-   
+      
    let opcodeMap =
       [Opcode(0x0, 0x0, 0xE, 0x0): CLS,
        Opcode(0x0, 0x0, 0xE, 0xE): RTS,
@@ -201,7 +133,6 @@ func CLS(opcode: Opcode, chip: inout Chip8) throws {
       throw Chip8Error.invalidParameterForOpcode
    }
    
-   chip.display.Clear()
    chip.PC += 2
 }
 
@@ -624,27 +555,24 @@ func DRAW(opcode: Opcode, chip: inout Chip8) throws {
    let opx = chip.registers[xIndex]
    let opy = chip.registers[yIndex]
    
-   var myPixels: [Pixel] = [Pixel]()
+   // Clear the collision register
+   chip.registers[0xF] = 0x0
+   
    for yline in 0...(mheight-1) {
       for xline in 0...7 {
          let pixel = chip.ram[Int(chip.I)+Int(yline)]
          if ((pixel & (0x80 >> xline)) != 0)
          {
-            myPixels.append(Pixel(offset: Int(opx)+Int(xline) + (Int(opy)+Int(yline))*64, color: .red))
-            chip.newDisplay.setPixel(x: Int(opx)+Int(xline), y: (Int(opy)+Int(yline)))
-
+            if (chip.display.setPixel(x: Int(opx)+Int(xline), y: (Int(opy)+Int(yline))))
+            {
+               // if there was a collision in any of the pixels, the function will return true.
+               // we need to flip the VF register accordingly
+               chip.registers[0xF] = 0x1
+            }
          }
       }
    }
    
-   // Clear the collision register
-   chip.registers[0xF] = 0x0
-   
-   // if there was a collision in any of the pixels, the function will return true.
-   // we need to flip the VF register accordingly
-   if (chip.display.DrawPixels(pixels: myPixels)) {
-      chip.registers[0xF] = 0x1
-   }
    chip.PC += 2
 }
 
