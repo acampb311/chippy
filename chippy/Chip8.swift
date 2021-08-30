@@ -27,8 +27,9 @@ class Chip8 : ObservableObject {
    var ST: UInt8 = 0x00
    var ram: [UInt8] = [UInt8](repeatElement(0x00, count: RAM_SIZE))
    var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
+   var keyboard = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
    var display: Display
-   
+
    let font: [UInt8] = [ 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                          0x20, 0x60, 0x20, 0x20, 0x70, // 1
                          0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -49,41 +50,39 @@ class Chip8 : ObservableObject {
    
    init() {
       ram.replaceSubrange(0x0..<font.count, with: font)
-      display =  Display()
+      display = Display()
       display.size = CGSize(width: 64, height: 32)
       display.scaleMode = .aspectFill
       display.createDisplay(pixelsWide: 64, pixelsHigh: 32)
    }
    
    func step(chip: inout Chip8) {
-      var count = 0
 
-      while (count < 1024)
-      {
-         let instruction = UInt32((UInt32(chip.ram[Int(chip.PC)+0]) << 8) |
-                                  (UInt32(chip.ram[Int(chip.PC)+1]) << 0) )
+      let instruction = UInt32((UInt32(chip.ram[Int(chip.PC)+0]) << 8) |
+                               (UInt32(chip.ram[Int(chip.PC)+1]) << 0) )
 
-         if let operation = chip.opcodeMap[Opcode(instruction: instruction)] {
-            do {
-               try operation(Opcode(instruction: instruction), &chip)
-            }
-            catch {
-               print("error calling operation. \(error)")
-               break
-            }
-
-         } else {
-            print("Unknown Operation")
-            break
+      if let operation = chip.opcodeMap[Opcode(instruction: instruction)] {
+         do {
+            try operation(Opcode(instruction: instruction), &chip)
          }
-
-         count+=1
+         catch {
+            print("error calling operation. \(error)")
+         }
       }
    }
    
    func loadRom(rom: [UInt8]) {
       ram.replaceSubrange(0x200..<rom.count+0x200, with: rom)
       PC = 0x200 //Chip8 roms are traditionally loaded starting at byte 512, 0x200
+      display.clear()
+   }
+   
+   func SetKey(key: Int) {
+      keyboard[key] = 0x01
+   }
+
+   func ClearKey(key: Int) {
+      keyboard[key] = 0x00
    }
       
    let opcodeMap =
@@ -132,7 +131,7 @@ func CLS(opcode: Opcode, chip: inout Chip8) throws {
    if opcode != Opcode(0x0, 0x0, 0xE, 0x0) {
       throw Chip8Error.invalidParameterForOpcode
    }
-   
+   chip.display.clear()
    chip.PC += 2
 }
 
@@ -558,9 +557,11 @@ func DRAW(opcode: Opcode, chip: inout Chip8) throws {
    // Clear the collision register
    chip.registers[0xF] = 0x0
    
-   for yline in 0...(mheight-1) {
+   for yline in 0..<mheight {
+      let pixel = chip.ram[Int(chip.I)+Int(yline)]
+
       for xline in 0...7 {
-         let pixel = chip.ram[Int(chip.I)+Int(yline)]
+         
          if ((pixel & (0x80 >> xline)) != 0)
          {
             if (chip.display.setPixel(x: Int(opx)+Int(xline), y: (Int(opy)+Int(yline))))
@@ -580,14 +581,40 @@ func DRAW(opcode: Opcode, chip: inout Chip8) throws {
 /// Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
 /// - Parameter operation: Ex9E - SKP Vx
 func SKPR(opcode: Opcode, chip: inout Chip8) throws {
-   throw Chip8Error.opcodeNotImplemented
+   if opcode != Opcode(0xE, nil, 0x9, 0xE) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
+   
+   guard let xIndex = opcode.GetX()
+   else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+
+   if chip.keyboard[xIndex] == 0x01 {
+      chip.PC += 4
+   } else {
+      chip.PC += 2
+   }
 }
 
 /// Skip next instruction if key with the value of Vx is not pressed.
 /// Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
 /// - Parameter operation: ExA1 - SKNP Vx
 func SKUP(opcode: Opcode, chip: inout Chip8) throws {
-   throw Chip8Error.opcodeNotImplemented
+   if opcode != Opcode(0xE, nil, 0xA, 0x1) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
+   
+   guard let xIndex = opcode.GetX()
+   else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+
+   if chip.keyboard[xIndex] == 0x00 {
+      chip.PC += 4
+   } else {
+      chip.PC += 2
+   }
 }
 
 /// Set Vx = delay timer value.
@@ -610,7 +637,24 @@ func MOVED(opcode: Opcode, chip: inout Chip8) throws {
 /// All execution stops until a key is pressed, then the value of that key is stored in Vx.
 /// - Parameter operation: Fx0A - LD Vx, K
 func KEYD(opcode: Opcode, chip: inout Chip8) throws {
-   throw Chip8Error.opcodeNotImplemented
+   if opcode != Opcode(0xF, nil, 0x0, 0xA) {
+      throw Chip8Error.invalidParameterForOpcode
+   }
+
+   guard let xIndex = opcode.GetX()
+   else {
+      throw Chip8Error.invalidOpcodeContents
+   }
+   
+   for i in 0..<16 {
+      if chip.keyboard[i] == 0x01 {
+         print(i)
+         chip.registers[xIndex] = UInt8(i)
+         break
+      }
+   }
+   
+   chip.PC += 2
 }
 
 /// Set delay timer = Vx.

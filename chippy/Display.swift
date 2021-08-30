@@ -9,8 +9,14 @@ import Foundation
 import SwiftUI
 import SpriteKit
 
+struct Pixel {
+   var node: SKSpriteNode?
+   var set: Bool
+}
+
 class Display : SKScene, ObservableObject {
-   var pixels: [SKSpriteNode] = []
+   var pixels: [Pixel] = []
+   
    var height: Int = 0
    var width: Int = 0
    var displayForegroundColor: NSColor = .white
@@ -22,12 +28,14 @@ class Display : SKScene, ObservableObject {
       
       for y in 0..<pixelsHigh {
          for x in 0..<pixelsWide {
+            
+            //+0.5 because it is with respect to center of 1x1 box
             let location = CGPoint(x: Double(x)+0.5, y: Double(y)+0.5)
-            let box = SKSpriteNode(color: SKColor.black, size: CGSize(width: 1, height: 1))
+            let box = SKSpriteNode(color: NSColor.black, size: CGSize(width: 1, height: 1))
             
             box.position = location
-            pixels.append(box)
             addChild(box)
+            pixels.append(Pixel(node: box, set: false))
          }
       }
    }
@@ -41,17 +49,27 @@ class Display : SKScene, ObservableObject {
    //   │ (0,Y-1)             (X-1,Y-1)│
    //   └──────────────────────────────┘
    func setPixel(x: Int, y: Int) -> Bool {
-      var collision = false
       guard x < width, y < height else {
-         print("bad num")
-         return collision
+         //         print("bad num")
+         return false
       }
       
-      if pixels[(height - 1 - y) * 64 + x].color == displayForegroundColor {
+      return setPixelDetails(pixel: &pixels[(height - 1 - y) * width + x])
+   }
+   
+   func setPixelDetails(pixel: inout Pixel) -> Bool {
+      var collision = false
+      
+      if pixel.set {
          collision = true
+         pixel.set = false
+         pixel.node?.color = displayBackgroundColor
       }
-      
-      pixels[(height - 1 - y) * 64 + x].color = displayForegroundColor
+      else
+      {
+         pixel.set = true
+         pixel.node?.color = displayForegroundColor
+      }
       
       return collision
    }
@@ -66,10 +84,21 @@ class Display : SKScene, ObservableObject {
    //   └──────────────────────────────┘
    func clearPixel(x: Int, y: Int) {
       guard x < width, y < height else {
-         print("bad num")
+         //         print("bad num")
          return
       }
       
-      pixels[(height - 1 - y) * 64 + x].color = displayBackgroundColor
+      pixels[(height - 1 - y) * 64 + x].node?.color = displayBackgroundColor
+   }
+   
+   func clear() {
+      for (index, _) in pixels.enumerated() {
+         pixels[index].set = false
+         pixels[index].node?.color = displayBackgroundColor
+      }
+   }
+   
+   func redraw() {
+      
    }
 }
