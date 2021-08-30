@@ -9,17 +9,6 @@ import SwiftUI
 import SpriteKit
 import Combine
 
-class SliderData: ObservableObject {
-   let didChange = PassthroughSubject<SliderData,Never>()
-      
-   @Published var sliderValue: Double = 0 {
-      didSet {
-         print("sliderValue \(sliderValue)")
-         didChange.send(self)
-      }
-   }
-}
-
 class TimerWrapper : ObservableObject {
    let willChange = PassthroughSubject<TimerWrapper, Never>()
    @Published var timer : Timer!
@@ -36,21 +25,17 @@ struct ContentView : View {
    
    @State private var chip8 = Chip8()
    @State var timer = Timer.publish(every: 1.0, on: .main, in: .default).autoconnect()
-   @ObservedObject var sliderData: SliderData
-   
+
+   @State private var freq: Double = 100
    
    private let delayTimer = Timer.publish(every: 1/60, on: .main, in: .common).autoconnect()
-   
-   init() {
-      sliderData = SliderData.init()
-   }
-   
+
    var body: some View {
       
       NavigationView {
          ScrollView {
-            Slider(value: $sliderData.sliderValue, in: 100...100000).onChange(of: sliderData.sliderValue) { _ in
-               self.timer = Timer.publish(every: 1/sliderData.sliderValue, on: .main, in: .default).autoconnect()
+            Slider(value: $freq, in: 100...100000).onChange(of: freq) { _ in
+               self.timer = Timer.publish(every: 1/freq, on: .main, in: .default).autoconnect()
             }
             
             RomView(currentChip: self.$chip8)
