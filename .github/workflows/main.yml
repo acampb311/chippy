@@ -30,7 +30,8 @@ jobs:
         with: 
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
-
+      - name: install xcbeautify
+        run: brew install xcbeautify
       # Runs a single command using the runners shell
       - name: run xcode build
         run: xcodebuild clean test -scheme 'chippy' 
