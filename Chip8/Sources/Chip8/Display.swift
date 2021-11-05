@@ -14,7 +14,7 @@ struct Pixel {
    var set: Bool
 }
 
-class Display : SKScene, ObservableObject {
+public class Display : SKScene, ObservableObject {
    var pixels: [Pixel] = []
    
    var height: Int = 0

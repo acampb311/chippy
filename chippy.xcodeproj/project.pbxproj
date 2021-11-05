@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,21 +11,8 @@
 		156B8FD126A107C100B67587 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B8FD026A107C100B67587 /* ContentView.swift */; };
 		156B8FD326A107C400B67587 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 156B8FD226A107C400B67587 /* Assets.xcassets */; };
 		156B8FD626A107C400B67587 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 156B8FD526A107C400B67587 /* Preview Assets.xcassets */; };
-		156B8FDF26A4D96F00B67587 /* Chip8.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B8FDE26A4D96F00B67587 /* Chip8.swift */; };
-		156B8FE726AD8B7E00B67587 /* chippyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B8FE626AD8B7E00B67587 /* chippyTests.swift */; };
-		156B8FEF26BEF4C100B67587 /* Opcode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B8FEE26BEF4C100B67587 /* Opcode.swift */; };
-		156B8FF126BEF4ED00B67587 /* Display.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156B8FF026BEF4ED00B67587 /* Display.swift */; };
+		1573F9BB2735CF6500813A20 /* Chip8 in Frameworks */ = {isa = PBXBuildFile; productRef = 1573F9BA2735CF6500813A20 /* Chip8 */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		156B8FE926AD8B7E00B67587 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 156B8FC326A107C100B67587 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 156B8FCA26A107C100B67587;
-			remoteInfo = chippy;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		156B8FCB26A107C100B67587 /* chippy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = chippy.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -35,12 +22,7 @@
 		156B8FD526A107C400B67587 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		156B8FD726A107C400B67587 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		156B8FD826A107C400B67587 /* chippy.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = chippy.entitlements; sourceTree = "<group>"; };
-		156B8FDE26A4D96F00B67587 /* Chip8.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chip8.swift; sourceTree = "<group>"; };
-		156B8FE426AD8B7E00B67587 /* chippyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = chippyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		156B8FE626AD8B7E00B67587 /* chippyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = chippyTests.swift; sourceTree = "<group>"; };
-		156B8FE826AD8B7E00B67587 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		156B8FEE26BEF4C100B67587 /* Opcode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Opcode.swift; sourceTree = "<group>"; };
-		156B8FF026BEF4ED00B67587 /* Display.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Display.swift; sourceTree = "<group>"; };
+		1573F9B42735CB4200813A20 /* Chip8 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Chip8; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,13 +30,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		156B8FE126AD8B7D00B67587 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				1573F9BB2735CF6500813A20 /* Chip8 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -64,9 +40,10 @@
 		156B8FC226A107C100B67587 = {
 			isa = PBXGroup;
 			children = (
+				1573F9B42735CB4200813A20 /* Chip8 */,
 				156B8FCD26A107C100B67587 /* chippy */,
-				156B8FE526AD8B7E00B67587 /* chippyTests */,
 				156B8FCC26A107C100B67587 /* Products */,
+				1573F9B52735CE2800813A20 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -74,7 +51,6 @@
 			isa = PBXGroup;
 			children = (
 				156B8FCB26A107C100B67587 /* chippy.app */,
-				156B8FE426AD8B7E00B67587 /* chippyTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -88,9 +64,6 @@
 				156B8FD726A107C400B67587 /* Info.plist */,
 				156B8FD826A107C400B67587 /* chippy.entitlements */,
 				156B8FD426A107C400B67587 /* Preview Content */,
-				156B8FDE26A4D96F00B67587 /* Chip8.swift */,
-				156B8FEE26BEF4C100B67587 /* Opcode.swift */,
-				156B8FF026BEF4ED00B67587 /* Display.swift */,
 			);
 			path = chippy;
 			sourceTree = "<group>";
@@ -103,13 +76,11 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
-		156B8FE526AD8B7E00B67587 /* chippyTests */ = {
+		1573F9B52735CE2800813A20 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				156B8FE626AD8B7E00B67587 /* chippyTests.swift */,
-				156B8FE826AD8B7E00B67587 /* Info.plist */,
 			);
-			path = chippyTests;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -126,29 +97,15 @@
 			buildRules = (
 			);
 			dependencies = (
+				1573F9BD2735CF9200813A20 /* PBXTargetDependency */,
 			);
 			name = chippy;
+			packageProductDependencies = (
+				1573F9BA2735CF6500813A20 /* Chip8 */,
+			);
 			productName = chippy;
 			productReference = 156B8FCB26A107C100B67587 /* chippy.app */;
 			productType = "com.apple.product-type.application";
-		};
-		156B8FE326AD8B7D00B67587 /* chippyTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 156B8FEB26AD8B7E00B67587 /* Build configuration list for PBXNativeTarget "chippyTests" */;
-			buildPhases = (
-				156B8FE026AD8B7D00B67587 /* Sources */,
-				156B8FE126AD8B7D00B67587 /* Frameworks */,
-				156B8FE226AD8B7D00B67587 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				156B8FEA26AD8B7E00B67587 /* PBXTargetDependency */,
-			);
-			name = chippyTests;
-			productName = chippyTests;
-			productReference = 156B8FE426AD8B7E00B67587 /* chippyTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -157,14 +114,10 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1250;
-				LastUpgradeCheck = 1250;
+				LastUpgradeCheck = 1310;
 				TargetAttributes = {
 					156B8FCA26A107C100B67587 = {
 						CreatedOnToolsVersion = 12.5.1;
-					};
-					156B8FE326AD8B7D00B67587 = {
-						CreatedOnToolsVersion = 12.5.1;
-						TestTargetID = 156B8FCA26A107C100B67587;
 					};
 				};
 			};
@@ -182,7 +135,6 @@
 			projectRoot = "";
 			targets = (
 				156B8FCA26A107C100B67587 /* chippy */,
-				156B8FE326AD8B7D00B67587 /* chippyTests */,
 			);
 		};
 /* End PBXProject section */
@@ -197,13 +149,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		156B8FE226AD8B7D00B67587 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -211,29 +156,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				156B8FF126BEF4ED00B67587 /* Display.swift in Sources */,
-				156B8FDF26A4D96F00B67587 /* Chip8.swift in Sources */,
-				156B8FEF26BEF4C100B67587 /* Opcode.swift in Sources */,
 				156B8FD126A107C100B67587 /* ContentView.swift in Sources */,
 				156B8FCF26A107C100B67587 /* chippyApp.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		156B8FE026AD8B7D00B67587 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				156B8FE726AD8B7E00B67587 /* chippyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		156B8FEA26AD8B7E00B67587 /* PBXTargetDependency */ = {
+		1573F9BD2735CF9200813A20 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 156B8FCA26A107C100B67587 /* chippy */;
-			targetProxy = 156B8FE926AD8B7E00B67587 /* PBXContainerItemProxy */;
+			productRef = 1573F9BC2735CF9200813A20 /* Chip8 */;
 		};
 /* End PBXTargetDependency section */
 
@@ -359,6 +292,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = chippy/chippy.entitlements;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"chippy/Preview Content\"";
@@ -383,6 +317,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = chippy/chippy.entitlements;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"chippy/Preview Content\"";
@@ -398,46 +333,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.acampb311.chippy.chippy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		156B8FEC26AD8B7E00B67587 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 2EP8JFX8SL;
-				INFOPLIST_FILE = chippyTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.acampb311.chippy.chippyTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/chippy.app/Contents/MacOS/chippy";
-			};
-			name = Debug;
-		};
-		156B8FED26AD8B7E00B67587 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 2EP8JFX8SL;
-				INFOPLIST_FILE = chippyTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.acampb311.chippy.chippyTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/chippy.app/Contents/MacOS/chippy";
 			};
 			name = Release;
 		};
@@ -462,16 +357,18 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		156B8FEB26AD8B7E00B67587 /* Build configuration list for PBXNativeTarget "chippyTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				156B8FEC26AD8B7E00B67587 /* Debug */,
-				156B8FED26AD8B7E00B67587 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1573F9BA2735CF6500813A20 /* Chip8 */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Chip8;
+		};
+		1573F9BC2735CF9200813A20 /* Chip8 */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Chip8;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 156B8FC326A107C100B67587 /* Project object */;
 }

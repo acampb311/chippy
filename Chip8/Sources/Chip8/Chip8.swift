@@ -18,17 +18,17 @@ enum Chip8Error: Error {
    case opcodeNotImplemented
 }
 
-class Chip8 : ObservableObject {
-   var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
-   var I: UInt16 = 0x00
-   var PC: UInt16 = 0x00
-   var SP: UInt8 = 0x00
-   var DT: UInt8 = 0x00
-   var ST: UInt8 = 0x00
-   var ram: [UInt8] = [UInt8](repeatElement(0x00, count: RAM_SIZE))
-   var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
-   var keyboard = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
-   var display: Display
+public class Chip8 : ObservableObject {
+   public var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+   public var I: UInt16 = 0x00
+   public var PC: UInt16 = 0x00
+   public var SP: UInt8 = 0x00
+   public var DT: UInt8 = 0x00
+   public var ST: UInt8 = 0x00
+   public var ram: [UInt8] = [UInt8](repeatElement(0x00, count: RAM_SIZE))
+   public var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
+   public var keyboard = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+   public var display: Display
 
    let font: [UInt8] = [ 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                          0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -48,7 +48,7 @@ class Chip8 : ObservableObject {
                          0xF0, 0x80, 0xF0, 0x80, 0x80] // F
    
    
-   init() {
+   public init() {
       ram.replaceSubrange(0x0..<font.count, with: font)
       display = Display()
       display.size = CGSize(width: 64, height: 32)
@@ -56,7 +56,7 @@ class Chip8 : ObservableObject {
       display.createDisplay(pixelsWide: 64, pixelsHigh: 32)
    }
    
-   func step(chip: inout Chip8) {
+   public func step(chip: inout Chip8) {
 
       let instruction = UInt32((UInt32(chip.ram[Int(chip.PC)+0]) << 8) |
                                (UInt32(chip.ram[Int(chip.PC)+1]) << 0) )
@@ -71,17 +71,17 @@ class Chip8 : ObservableObject {
       }
    }
    
-   func loadRom(rom: [UInt8]) {
+   public func loadRom(rom: [UInt8]) {
       ram.replaceSubrange(0x200..<rom.count+0x200, with: rom)
       PC = 0x200 //Chip8 roms are traditionally loaded starting at byte 512, 0x200
       display.clear()
    }
    
-   func SetKey(key: Int) {
+   public func SetKey(key: Int) {
       keyboard[key] = 0x01
    }
 
-   func ClearKey(key: Int) {
+   public func ClearKey(key: Int) {
       keyboard[key] = 0x00
    }
       
@@ -774,3 +774,4 @@ func READ(opcode: Opcode, chip: inout Chip8) throws {
    }
    chip.PC += 2
 }
+
