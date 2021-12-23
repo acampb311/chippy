@@ -31,11 +31,11 @@ struct ContentView : View {
                }
             Button(action: {
                
-//               chip8.gameTimer = Timer(timeInterval: 1/1000, target: chip8, selector: #selector(chip8.timerStep), userInfo: nil, repeats: true);
-//               RunLoop.current.add(chip8.gameTimer!, forMode: .common)
-//
-//               chip8.delayTimer = Timer(timeInterval: 1/60, target: chip8, selector: #selector(chip8.delayStep), userInfo: nil, repeats: true)
-//               RunLoop.current.add(chip8.delayTimer!, forMode: .common)
+               //               chip8.gameTimer = Timer(timeInterval: 1/1000, target: chip8, selector: #selector(chip8.timerStep), userInfo: nil, repeats: true);
+               //               RunLoop.current.add(chip8.gameTimer!, forMode: .common)
+               //
+               //               chip8.delayTimer = Timer(timeInterval: 1/60, target: chip8, selector: #selector(chip8.delayStep), userInfo: nil, repeats: true)
+               //               RunLoop.current.add(chip8.delayTimer!, forMode: .common)
                
             }) {
                Label("Play", systemImage: "play.fill")
@@ -48,7 +48,7 @@ struct ContentView : View {
          
          SpriteView(scene: chip8.display).frame(width: 640, height: 320)
          
-      }.onAppear(perform: {self.chip8.currentChip = chip8}).background(KeyEventHandling(currentChip: self.chip8))
+      }.onAppear(perform: {self.chip8.currentChip = chip8})
    }
 }
 
@@ -83,14 +83,19 @@ struct InstrView : View {
    
    @Environment(\.defaultMinListRowHeight) var minRowHeight
    @ObservedObject var currentChip: Chip8
+   @State private var sortOrder = [KeyPathComparator(\Op.id)]
    
    var body: some View {
       
       DisclosureGroup(
          content: {
             VStack {
-               
-               List($currentChip.instrList,id:\.self) {$inst in Text(inst) }.frame(minHeight: minRowHeight * 15).border(Color.red)
+               Table(currentChip.instrList, selection: $currentChip.currentO, sortOrder: $sortOrder) {
+                  TableColumn("Address", value: \.id)
+                  TableColumn("Raw Op", value: \.operation)
+                  TableColumn("Decoded Op", value: \.opcode)
+               }
+               .frame(minHeight: minRowHeight * 15)
             }
          },
          label: {
@@ -188,41 +193,5 @@ class HexFormatter: Formatter {
       guard let number = mac else { return nil }
       
       return String(format:"%04X", number)
-      
-      
-   }
-}
-
-
-//https://stackoverflow.com/questions/61153562/how-to-detect-keyboard-events-in-swiftui-on-macos
-struct KeyEventHandling: NSViewRepresentable {
-   @ObservedObject var currentChip: Chip8
-   
-   class KeyView: NSView {
-      
-      var tempChip: Chip8? = nil
-      override var acceptsFirstResponder: Bool { true }
-      override func keyDown(with event: NSEvent) {
-         if let key = Int(event.charactersIgnoringModifiers ?? "", radix: 16) {
-            tempChip?.SetKey(key: key)
-         }
-      }
-      override func keyUp(with event: NSEvent) {
-         if let key = Int(event.charactersIgnoringModifiers ?? "", radix: 16) {
-            tempChip?.ClearKey(key: key)
-         }
-      }
-   }
-   
-   func makeNSView(context: Context) -> NSView {
-      let view = KeyView()
-      view.tempChip = currentChip
-      DispatchQueue.main.async { // wait till next event cycle
-         view.window?.makeFirstResponder(view)
-      }
-      return view
-   }
-   
-   func updateNSView(_ nsView: NSView, context: Context) {
    }
 }

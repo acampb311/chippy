@@ -18,10 +18,17 @@ enum Chip8Error: Error {
    case opcodeNotImplemented
 }
 
+public struct Op: Identifiable {
+//   public let id = UUID()
+   public var id: String
+   public var opcode: String
+   public var operation: String
+}
+
 public class Chip8 : ObservableObject {
    @Published public var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
    public var I: UInt16 = 0x00
-   public var PC: UInt16 = 0x00
+   @Published public var PC: UInt16 = 0x00
    public var SP: UInt8 = 0x00
    public var DT: UInt8 = 0x00
    public var ST: UInt8 = 0x00
@@ -31,8 +38,10 @@ public class Chip8 : ObservableObject {
    public var display: Display
    public var gameTimer: Timer?
    public var delayTimer: Timer?
-   @Published public var instrList: [String]
+   @Published public var currentO: String?
+   @Published public var instrList: [Op]
    public var currentChip: Chip8?
+   private var romSize: Int
 
    let font: [UInt8] = [ 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                          0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -59,6 +68,7 @@ public class Chip8 : ObservableObject {
       display.scaleMode = .aspectFill
       display.createDisplay(pixelsWide: 64, pixelsHigh: 32)
       instrList = []
+      romSize = 0
    }
 
    @objc
@@ -78,7 +88,8 @@ public class Chip8 : ObservableObject {
 
       if let operation = opcodeMap[Opcode(instruction: instruction)] {
          do {
-            try operation(Opcode(instruction: instruction), &currentChip!)
+            self.currentO = String(format: "0x%04X", Int(PC))
+            try operation.0(Opcode(instruction: instruction), &currentChip!)
          }
          catch {
             print("error calling operation. \(error)")
@@ -92,21 +103,25 @@ public class Chip8 : ObservableObject {
    public func loadRom(rom: [UInt8]) {
       ram.replaceSubrange(0x200..<rom.count+0x200, with: rom)
       PC = 0x200 //Chip8 roms are traditionally loaded starting at byte 512, 0x200
+      romSize = rom.count + 0x200
+      instrList = []
       display.clear()
       popInstrs()
    }
    
    public func popInstrs() {
       
-      for pc in stride(from: 512, to: 2048, by: 2) {
+      for pc in stride(from: 512, to: romSize, by: 2) {
          let instruction = UInt32((UInt32(ram[pc+0]) << 8) |
                                   (UInt32(ram[pc+1]) << 0) )
 
          if let operation = opcodeMap[Opcode(instruction: instruction)] {
             do {
-               instrList.append(String(format: "%X", instruction))
 
-//               try operation(Opcode(instruction: instruction), &currentChip!)
+               let dd = Op(id: String(format: "0x%04X", pc),
+                           opcode: String(operation.1),
+                           operation: String(format: "0x%04X", instruction))
+               instrList.append(dd)
             }
          }
          else {
@@ -126,40 +141,40 @@ public class Chip8 : ObservableObject {
    }
       
    let opcodeMap =
-      [Opcode(0x0, 0x0, 0xE, 0x0): CLS,
-       Opcode(0x0, 0x0, 0xE, 0xE): RTS,
-       Opcode(0x1, nil, nil, nil): JUMP,
-       Opcode(0x2, nil, nil, nil): CALL,
-       Opcode(0x3, nil, nil, nil): SKE,
-       Opcode(0x4, nil, nil, nil): SKNE,
-       Opcode(0x5, nil, nil, 0x0): SKRE,
-       Opcode(0x6, nil, nil, nil): LOAD,
-       Opcode(0x7, nil, nil, nil): ADD,
-       Opcode(0x8, nil, nil, 0x0): MOVE,
-       Opcode(0x8, nil, nil, 0x1): OR,
-       Opcode(0x8, nil, nil, 0x2): AND,
-       Opcode(0x8, nil, nil, 0x3): XOR,
-       Opcode(0x8, nil, nil, 0x4): ADDR,
-       Opcode(0x8, nil, nil, 0x5): SUB,
-       Opcode(0x8, nil, nil, 0x6): SHR,
-       Opcode(0x8, nil, nil, 0x7): SUBN,
-       Opcode(0x8, nil, nil, 0xE): SHL,
-       Opcode(0x9, nil, nil, 0x0): SKRNE,
-       Opcode(0xA, nil, nil, nil): LOADI,
-       Opcode(0xB, nil, nil, nil): JUMPI,
-       Opcode(0xC, nil, nil, nil): RAND,
-       Opcode(0xD, nil, nil, nil): DRAW,
-       Opcode(0xE, nil, 0x9, 0xE): SKPR,
-       Opcode(0xE, nil, 0xA, 0x1): SKUP,
-       Opcode(0xF, nil, 0x0, 0x7): MOVED,
-       Opcode(0xF, nil, 0x0, 0xA): KEYD,
-       Opcode(0xF, nil, 0x1, 0x5): LOADD,
-       Opcode(0xF, nil, 0x1, 0x8): LOADS,
-       Opcode(0xF, nil, 0x1, 0xE): ADDI,
-       Opcode(0xF, nil, 0x2, 0x9): LDSPR,
-       Opcode(0xF, nil, 0x3, 0x3): BCD,
-       Opcode(0xF, nil, 0x5, 0x5): STOR,
-       Opcode(0xF, nil, 0x6, 0x5): READ]
+      [Opcode(0x0, 0x0, 0xE, 0x0): (CLS, "CLS"),
+       Opcode(0x0, 0x0, 0xE, 0xE): (RTS,"RTS"),
+       Opcode(0x1, nil, nil, nil): (JUMP,"JUMP"),
+       Opcode(0x2, nil, nil, nil): (CALL,"CALL"),
+       Opcode(0x3, nil, nil, nil): (SKE,"SKE"),
+       Opcode(0x4, nil, nil, nil): (SKNE,"SKNE"),
+       Opcode(0x5, nil, nil, 0x0): (SKRE,"SKRE"),
+       Opcode(0x6, nil, nil, nil): (LOAD,"LOAD"),
+       Opcode(0x7, nil, nil, nil): (ADD,"ADD"),
+       Opcode(0x8, nil, nil, 0x0): (MOVE,"MOVE"),
+       Opcode(0x8, nil, nil, 0x1): (OR,"OR"),
+       Opcode(0x8, nil, nil, 0x2): (AND,"AND"),
+       Opcode(0x8, nil, nil, 0x3): (XOR,"XOR"),
+       Opcode(0x8, nil, nil, 0x4): (ADDR,"ADDR"),
+       Opcode(0x8, nil, nil, 0x5): (SUB,"SUB"),
+       Opcode(0x8, nil, nil, 0x6): (SHR,"SHR"),
+       Opcode(0x8, nil, nil, 0x7): (SUBN,"SUBN"),
+       Opcode(0x8, nil, nil, 0xE): (SHL,"SHL"),
+       Opcode(0x9, nil, nil, 0x0): (SKRNE,"SKRNE"),
+       Opcode(0xA, nil, nil, nil): (LOADI,"LOADI"),
+       Opcode(0xB, nil, nil, nil): (JUMPI,"JUMPI"),
+       Opcode(0xC, nil, nil, nil): (RAND,"RAND"),
+       Opcode(0xD, nil, nil, nil): (DRAW,"DRAW"),
+       Opcode(0xE, nil, 0x9, 0xE): (SKPR,"SKPR"),
+       Opcode(0xE, nil, 0xA, 0x1): (SKUP,"SKUP"),
+       Opcode(0xF, nil, 0x0, 0x7): (MOVED,"MOVED"),
+       Opcode(0xF, nil, 0x0, 0xA): (KEYD,"KEYD"),
+       Opcode(0xF, nil, 0x1, 0x5): (LOADD,"LOADD"),
+       Opcode(0xF, nil, 0x1, 0x8): (LOADS,"LOADS"),
+       Opcode(0xF, nil, 0x1, 0xE): (ADDI,"ADDI"),
+       Opcode(0xF, nil, 0x2, 0x9): (LDSPR,"LDSPR"),
+       Opcode(0xF, nil, 0x3, 0x3): (BCD,"BCD"),
+       Opcode(0xF, nil, 0x5, 0x5): (STOR,"STOR"),
+       Opcode(0xF, nil, 0x6, 0x5): (READ,"READ")]
 }
 
 
