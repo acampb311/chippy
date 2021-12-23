@@ -19,7 +19,7 @@ enum Chip8Error: Error {
 }
 
 public class Chip8 : ObservableObject {
-   public var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+   @Published public var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
    public var I: UInt16 = 0x00
    public var PC: UInt16 = 0x00
    public var SP: UInt8 = 0x00
@@ -29,6 +29,10 @@ public class Chip8 : ObservableObject {
    public var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
    public var keyboard = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
    public var display: Display
+   public var gameTimer: Timer?
+   public var delayTimer: Timer?
+   @Published public var instrList: [String]
+   public var currentChip: Chip8?
 
    let font: [UInt8] = [ 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                          0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -54,20 +58,34 @@ public class Chip8 : ObservableObject {
       display.size = CGSize(width: 64, height: 32)
       display.scaleMode = .aspectFill
       display.createDisplay(pixelsWide: 64, pixelsHigh: 32)
+      instrList = []
+   }
+
+   @objc
+   public func delayStep() {
+      
+      if (DT > 0)
+      {
+         DT -= 1
+      }
    }
    
-   public func step(chip: inout Chip8) {
+   @objc
+   public func timerStep() {
+      
+      let instruction = UInt32((UInt32(ram[Int(PC)+0]) << 8) |
+                               (UInt32(ram[Int(PC)+1]) << 0) )
 
-      let instruction = UInt32((UInt32(chip.ram[Int(chip.PC)+0]) << 8) |
-                               (UInt32(chip.ram[Int(chip.PC)+1]) << 0) )
-
-      if let operation = chip.opcodeMap[Opcode(instruction: instruction)] {
+      if let operation = opcodeMap[Opcode(instruction: instruction)] {
          do {
-            try operation(Opcode(instruction: instruction), &chip)
+            try operation(Opcode(instruction: instruction), &currentChip!)
          }
          catch {
             print("error calling operation. \(error)")
          }
+      }
+      else {
+         print("Unknown instr")
       }
    }
    
@@ -75,6 +93,28 @@ public class Chip8 : ObservableObject {
       ram.replaceSubrange(0x200..<rom.count+0x200, with: rom)
       PC = 0x200 //Chip8 roms are traditionally loaded starting at byte 512, 0x200
       display.clear()
+      popInstrs()
+   }
+   
+   public func popInstrs() {
+      
+      for pc in stride(from: 512, to: 2048, by: 2) {
+         let instruction = UInt32((UInt32(ram[pc+0]) << 8) |
+                                  (UInt32(ram[pc+1]) << 0) )
+
+         if let operation = opcodeMap[Opcode(instruction: instruction)] {
+            do {
+               instrList.append(String(format: "%X", instruction))
+
+//               try operation(Opcode(instruction: instruction), &currentChip!)
+            }
+         }
+         else {
+            print("Unknown instr")
+         }
+      }
+      
+      
    }
    
    public func SetKey(key: Int) {
@@ -147,6 +187,7 @@ func RTS(opcode: Opcode, chip: inout Chip8) throws {
    chip.PC = chip.stack[Int(chip.SP)]
    chip.SP = chip.SP - 1
    chip.PC += 2
+   chip.instrList.removeAll()
 }
 
 /// Jump to location nnn.
@@ -313,7 +354,7 @@ func OR(opcode: Opcode, chip: inout Chip8) throws {
    else {
       throw Chip8Error.invalidOpcodeContents
    }
-   
+
    chip.registers[xIndex] |= chip.registers[yIndex]
    chip.PC += 2
 }
@@ -540,6 +581,7 @@ func RAND(opcode: Opcode, chip: inout Chip8) throws {
 /// The interpreter reads n bytes from memory, starting at the address stored in I. These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen.
 /// - Parameter operation: Dxyn - DRW Vx, Vy, nibble
 func DRAW(opcode: Opcode, chip: inout Chip8) throws {
+
    if opcode != Opcode(0xD, nil, nil, nil) {
       throw Chip8Error.invalidParameterForOpcode
    }
@@ -555,25 +597,24 @@ func DRAW(opcode: Opcode, chip: inout Chip8) throws {
    let opy = chip.registers[yIndex]
    
    // Clear the collision register
-   chip.registers[0xF] = 0x0
+   chip.registers[0xF] = 0
    
    for yline in 0..<mheight {
-      let pixel = chip.ram[Int(chip.I)+Int(yline)]
-
+      let line = chip.ram[Int(chip.I)+Int(yline)]
+      
       for xline in 0...7 {
-         
-         if ((pixel & (0x80 >> xline)) != 0)
+         let pixel = line & (0x80 >> xline)
+         if (pixel != 0)
          {
             if (chip.display.setPixel(x: Int(opx)+Int(xline), y: (Int(opy)+Int(yline))))
             {
                // if there was a collision in any of the pixels, the function will return true.
                // we need to flip the VF register accordingly
-               chip.registers[0xF] = 0x1
+               chip.registers[0xF] = 1
             }
          }
       }
    }
-   
    chip.PC += 2
 }
 
@@ -648,7 +689,6 @@ func KEYD(opcode: Opcode, chip: inout Chip8) throws {
    
    for i in 0..<16 {
       if chip.keyboard[i] == 0x01 {
-         print(i)
          chip.registers[xIndex] = UInt8(i)
          break
       }

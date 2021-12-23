@@ -49,56 +49,35 @@ public class Display : SKScene, ObservableObject {
    //   │ (0,Y-1)             (X-1,Y-1)│
    //   └──────────────────────────────┘
    func setPixel(x: Int, y: Int) -> Bool {
-      guard x < width, y < height else {
-         //         print("bad num")
-         return false
-      }
-      
-      return setPixelDetails(pixel: &pixels[(height - 1 - y) * width + x])
+      return setPixelDetails(pixel: &pixels[(height - 1 - (y % height)) * width + (x % width)])
    }
    
    func setPixelDetails(pixel: inout Pixel) -> Bool {
-      var collision = false
+      let collision = pixel.set
       
-      if pixel.set {
-         collision = true
-         pixel.set = false
-         pixel.node?.color = displayBackgroundColor
-      }
-      else
-      {
-         pixel.set = true
-         pixel.node?.color = displayForegroundColor
-      }
+//      pixel.set ^= true
+      pixel.set = !pixel.set
+      
+      pixel.node?.color = pixel.set ? displayForegroundColor : displayBackgroundColor
       
       return collision
    }
-   
-   //   ┌──────────────────────────────┐
-   //   │  (0,0)               (X-1,0) │
-   //   │                              │
-   //   │                              │
-   //   │                              │
-   //   │                              │
-   //   │ (0,Y-1)             (X-1,Y-1)│
-   //   └──────────────────────────────┘
-   func clearPixel(x: Int, y: Int) {
-      guard x < width, y < height else {
-         //         print("bad num")
-         return
-      }
-      
-      pixels[(height - 1 - y) * 64 + x].node?.color = displayBackgroundColor
-   }
-   
+  
    func clear() {
       for (index, _) in pixels.enumerated() {
          pixels[index].set = false
          pixels[index].node?.color = displayBackgroundColor
       }
    }
+
+}
+
+extension Bool {
+    static func ^ (left: Bool, right: Bool) -> Bool {
+        return left != right
+    }
    
-   func redraw() {
-      
+   static func ^= (left: inout Bool, right: Bool) {
+      left = left ^ right
    }
 }

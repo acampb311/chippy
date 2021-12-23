@@ -2,6 +2,32 @@ import XCTest
 @testable import Chip8
 
 final class Chip8Tests: XCTestCase {
+   
+   func testXOR() throws {
+      var chip8 = Chip8()
+      
+      var a = false
+      var b = false
+      var c = a ^ b
+      print(a, " ", b, " ", c)
+      
+      a = true
+      b = false
+      c = a ^ b
+      print(a, " ", b, " ", c)
+
+      
+      a = false
+      b = true
+      c = a ^ b
+      print(a, " ", b, " ", c)
+      
+      a = true
+      b = true
+      c = a ^ b
+      print(a, " ", b, " ", c)
+   }
+   
     func testReturnFromSubroutine() throws {
        // Given
        var chip8 = Chip8()

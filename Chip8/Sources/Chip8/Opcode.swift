@@ -28,6 +28,10 @@ struct Opcode: Hashable {
       self.fourth = UInt8((instruction & 0x000F) >> 0)
    }
    
+//   func DisplayOp() {
+//      print(self.)
+//   }
+   
    /// Opcodes in the Chip8 spec utilize the lower three bytes to specify an address.
    /// This address can only ever be 12 bits, but we use UInt16 as a convenient container
    /// - Returns: The combined lower three bytes of the opcode
