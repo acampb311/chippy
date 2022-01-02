@@ -10,7 +10,7 @@ import SpriteKit
 import Combine
 import Chip8
 
-struct ContentView : View {
+struct ContentView: View {
    
    @ObservedObject private var chip8 = Chip8()
    
@@ -26,21 +26,21 @@ struct ContentView : View {
          }.toolbar {
             Button(action: {
                chip8.gameTimer?.invalidate();
-               chip8.delayTimer?.invalidate() } ){
+               chip8.delayTimer?.invalidate() }) {
                   Label("Stop", systemImage: "stop.fill")
                }
             Button(action: {
                
-               //               chip8.gameTimer = Timer(timeInterval: 1/1000, target: chip8, selector: #selector(chip8.timerStep), userInfo: nil, repeats: true);
-               //               RunLoop.current.add(chip8.gameTimer!, forMode: .common)
-               //
-               //               chip8.delayTimer = Timer(timeInterval: 1/60, target: chip8, selector: #selector(chip8.delayStep), userInfo: nil, repeats: true)
-               //               RunLoop.current.add(chip8.delayTimer!, forMode: .common)
+               chip8.gameTimer = Timer(timeInterval: 1/1000, target: chip8, selector: #selector(chip8.Step), userInfo: nil, repeats: true);
+               RunLoop.current.add(chip8.gameTimer!, forMode: .common)
+               
+               chip8.delayTimer = Timer(timeInterval: 1/60, target: chip8, selector: #selector(chip8.delayStep), userInfo: nil, repeats: true)
+               RunLoop.current.add(chip8.delayTimer!, forMode: .common)
                
             }) {
                Label("Play", systemImage: "play.fill")
             }
-            Button( action: { self.chip8.timerStep() }
+            Button(action: { self.chip8.Step() }
             ) {
                Label("Record Progress", systemImage: "forward.fill")
             }
@@ -48,7 +48,7 @@ struct ContentView : View {
          
          SpriteView(scene: chip8.display).frame(width: 640, height: 320)
          
-      }.onAppear(perform: {self.chip8.currentChip = chip8})
+      }.onAppear(perform: { self.chip8.currentChip = chip8 })
    }
 }
 
@@ -61,7 +61,7 @@ struct RomView: View {
    var body: some View {
       HStack {
          Text(filename)
-         Button("select File")
+         Button("Select ROM")
          {
             let panel = NSOpenPanel()
             panel.allowsMultipleSelection = false
@@ -73,65 +73,36 @@ struct RomView: View {
                }
             }
          }
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      }.frame(maxWidth: .infinity, maxHeight: .infinity)
    }
 }
 
-
-struct InstrView : View {
-   
+struct InstrView: View {
    @Environment(\.defaultMinListRowHeight) var minRowHeight
    @ObservedObject var currentChip: Chip8
-   @State private var sortOrder = [KeyPathComparator(\Op.id)]
-   
-   var body: some View {
-      
-      DisclosureGroup(
-         content: {
-            VStack {
-               Table(currentChip.instrList, selection: $currentChip.currentO, sortOrder: $sortOrder) {
-                  TableColumn("Address", value: \.id)
-                  TableColumn("Raw Op", value: \.operation)
-                  TableColumn("Decoded Op", value: \.opcode)
-               }
-               .frame(minHeight: minRowHeight * 15)
-            }
-         },
-         label: {
-            HStack(spacing: 5) {
-               Image(systemName: "switch.2")
-               Text("gg")
-            }
-         }).padding([ .leading, .trailing], 10.0)
-   }
-}
-
-struct ConfigurationView : View {
-   @ObservedObject var currentChip: Chip8
-   
-   var columns: [GridItem] = [
-      GridItem(.adaptive(minimum: 50))
-   ]
+   @State private var sortOrder = [KeyPathComparator(\InstructionInfo.addr)]
+   @State private var vibrateOnRing = false
    
    var body: some View {
       DisclosureGroup(
          content: {
-            VStack {
-               
-            }
+            
+            Table(currentChip.allInstructions, selection: $currentChip.currentInstruction, sortOrder: $sortOrder) {
+               TableColumn("Address", value: \.addr)
+               TableColumn("Raw Op", value: \.operation)
+               TableColumn("Decoded Op", value: \.opcodeName)
+            }.frame(minHeight: minRowHeight * 15)
          },
          label: {
             HStack(spacing: 5) {
                Image(systemName: "switch.2")
-               Text("Configuration")
+               Text("Instructions")
             }
-         })
-         .padding([.top, .leading, .trailing], 10.0)
+         }).padding([.leading, .trailing], 10.0)
    }
 }
 
-struct RegisterView : View {
+struct RegisterView: View {
    @ObservedObject var currentChip: Chip8
    
    var columns: [GridItem] = [
@@ -147,9 +118,9 @@ struct RegisterView : View {
                alignment: .leading,
                spacing: 8
             ) {
-               ForEach((0...(currentChip.registers.count) - 1), id: \.self) {  i in
+               ForEach((0...(currentChip.registers.count) - 1), id: \.self) { i in
                   HStack {
-                     Text("V\(String(format:"%01x", i).uppercased()):")
+                     Text("V\(String(format: "%01x", i).uppercased()):")
                      TextField("", value: $currentChip.registers[i], formatter: NumberFormatter())
                   }
                }
@@ -173,25 +144,5 @@ struct RegisterView : View {
                Text("Registers")
             }
          }).padding([.top, .leading, .trailing], 10.0)
-   }
-}
-
-class HexFormatter: Formatter {
-   override func string(for obj: Any?) -> String? {
-      if let string = obj as? Int {
-         return formattedAddress(mac: string)
-      }
-      return nil
-   }
-   
-   override func getObjectValue(_ obj: AutoreleasingUnsafeMutablePointer<AnyObject?>?, for string: String, errorDescription error: AutoreleasingUnsafeMutablePointer<NSString?>?) -> Bool {
-      obj?.pointee = string as AnyObject?
-      return true
-   }
-   
-   func formattedAddress(mac: Int?) -> String? {
-      guard let number = mac else { return nil }
-      
-      return String(format:"%04X", number)
    }
 }
