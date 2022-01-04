@@ -17,8 +17,8 @@ struct Pixel {
 public class Display : SKScene, ObservableObject {
    var pixels: [Pixel] = []
    
-   var height: Int = 0
-   var width: Int = 0
+   public var height: Int = 0
+   public var width: Int = 0
    var displayForegroundColor: NSColor = .white
    var displayBackgroundColor: NSColor = .black
    
@@ -55,7 +55,6 @@ public class Display : SKScene, ObservableObject {
    func setPixelDetails(pixel: inout Pixel) -> Bool {
       let collision = pixel.set
       
-//      pixel.set ^= true
       pixel.set = !pixel.set
       
       pixel.node?.color = pixel.set ? displayForegroundColor : displayBackgroundColor
@@ -68,16 +67,5 @@ public class Display : SKScene, ObservableObject {
          pixels[index].set = false
          pixels[index].node?.color = displayBackgroundColor
       }
-   }
-
-}
-
-extension Bool {
-    static func ^ (left: Bool, right: Bool) -> Bool {
-        return left != right
-    }
-   
-   static func ^= (left: inout Bool, right: Bool) {
-      left = left ^ right
    }
 }

@@ -13,6 +13,6 @@ struct chippyApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-        }
+        }.windowToolbarStyle(UnifiedWindowToolbarStyle(showsTitle: false))
     }
 }
