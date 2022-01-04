@@ -63,23 +63,24 @@ func StartChipTimers(chip8: Chip8) {
 
 struct RomView: View {
    @ObservedObject var currentChip: Chip8
-   
-   @State var filename = "ROM"
-   @State var showFileChooser = false
+   @State private var filename = "ROM"
+   @State private var showImporter = false
    
    var body: some View {
       HStack {
          Text(filename)
          Button("Select ROM")
          {
-            let panel = NSOpenPanel()
-            panel.allowsMultipleSelection = false
-            panel.canChooseDirectories = false
-            if panel.runModal() == .OK {
-               self.filename = panel.url?.lastPathComponent ?? "<none>"
-               if let content = NSData(contentsOf: panel.url!) {
-                  currentChip.loadRom(rom: [UInt8](content))
-               }
+            self.showImporter = true
+         }
+         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.data]) { result in
+            if let url = try? result.get(),
+               url.startAccessingSecurityScopedResource(),
+               let rom = try? [UInt8](Data(contentsOf: url))
+            {
+                  currentChip.loadRom(rom: rom)
+                  self.filename = url.lastPathComponent
+                  url.stopAccessingSecurityScopedResource()
             }
          }
       }.padding(5)
