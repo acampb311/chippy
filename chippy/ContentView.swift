@@ -13,6 +13,9 @@ import Chip8
 struct ContentView: View {
    @ObservedObject private var chip8 = Chip8()
    
+   @State var showInspector = true
+   @State var showControls = true
+   
    var body: some View {
       NavigationView {
          ScrollView {
@@ -44,13 +47,13 @@ func StopChipTimers(chip8: Chip8) {
 }
 
 func StartChipTimers(chip8: Chip8) {
-   //               DispatchQueue.global(qos: .userInteractive).async {
-   chip8.gameTimer = Timer(timeInterval: 1/300, target: chip8, selector: #selector(chip8.Step), userInfo: nil, repeats: true)
-   RunLoop.current.add(chip8.gameTimer!, forMode: .common)
-   //                  let runLoop = RunLoop.current
-   //                  runLoop.add(chip8.gameTimer!, forMode: .default)
-   //                  runLoop.run()
-   //               }
+//   DispatchQueue.global(qos: .userInteractive).async {
+      chip8.gameTimer = Timer(timeInterval: 1/1000, target: chip8, selector: #selector(chip8.Step), userInfo: nil, repeats: true)
+         RunLoop.current.add(chip8.gameTimer!, forMode: .common)
+//      let runLoop = RunLoop.current
+//      runLoop.add(chip8.gameTimer!, forMode: .default)
+//      runLoop.run()
+   
    
    //               DispatchQueue.global(qos: .userInteractive).async {
    chip8.delayTimer = Timer(timeInterval: 1/60, target: chip8, selector: #selector(chip8.delayStep), userInfo: nil, repeats: true)
@@ -69,8 +72,7 @@ struct RomView: View {
    var body: some View {
       HStack {
          Text(filename)
-         Button("Select ROM")
-         {
+         Button("Select ROM") {
             self.showImporter = true
          }
          .fileImporter(isPresented: $showImporter, allowedContentTypes: [.data]) { result in
@@ -78,9 +80,9 @@ struct RomView: View {
                url.startAccessingSecurityScopedResource(),
                let rom = try? [UInt8](Data(contentsOf: url))
             {
-                  currentChip.loadRom(rom: rom)
-                  self.filename = url.lastPathComponent
-                  url.stopAccessingSecurityScopedResource()
+               currentChip.loadRom(rom: rom)
+               self.filename = url.lastPathComponent
+               url.stopAccessingSecurityScopedResource()
             }
          }
       }.padding(5)
