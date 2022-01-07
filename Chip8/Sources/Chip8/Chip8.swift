@@ -43,8 +43,8 @@ public struct InstructionInfo {
 
 public class Chip8 : ObservableObject {
    @Published public var registers = ObservableArray<UInt8>(array: [UInt8](repeatElement(0x0, count: REGISTER_SIZE)))
-   @Published public var I: UInt16 = 0x00
-   @Published public var PC: UInt16 = 0x00
+   public var I: UInt16 = 0x00
+   public var PC: UInt16 = 0x00
    public var SP: UInt8 = 0x00
    public var DT: UInt8 = 0x00
    public var ST: UInt8 = 0x00
@@ -99,7 +99,7 @@ public class Chip8 : ObservableObject {
       
       let instruction = UInt32((UInt32(ram[Int(PC)+0]) << 8) |
                                (UInt32(ram[Int(PC)+1]) << 0) )
-      
+      PC += 2
       if let operation = opcodeMap[Opcode(instruction: instruction)] {
          do {
             if let instr = allInstructions.first(where: {$0.instruction == instruction}) {
@@ -206,7 +206,6 @@ func CLS(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.display.clear()
-   chip.PC += 2
 }
 
 /// Returns from a subroutine.
@@ -224,7 +223,6 @@ func RTS(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    
    chip.PC = chip.stack[Int(chip.SP)]
    chip.SP = chip.SP - 1
-   chip.PC += 2
 }
 
 /// Jump to location nnn.
@@ -286,8 +284,6 @@ func SKE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    if chip.registers.array[Int(xIndex)] == value {
-      chip.PC += 4
-   } else {
       chip.PC += 2
    }
 }
@@ -311,8 +307,6 @@ func SKNE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    if chip.registers.array[Int(xIndex)] != value {
-      chip.PC += 4
-   } else {
       chip.PC += 2
    }
 }
@@ -336,8 +330,6 @@ func SKRE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    if chip.registers.array[Int(xIndex)] == chip.registers.array[Int(yIndex)]  {
-      chip.PC += 4
-   } else {
       chip.PC += 2
    }
 }
@@ -361,7 +353,6 @@ func LOAD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.registers.array[xIndex] = value
-   chip.PC += 2
 }
 
 /// Set Vx = Vx + kk.
@@ -384,7 +375,6 @@ func ADD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    
    let total: Int = Int(chip.registers.array[xIndex]) + Int(value)
    chip.registers.array[xIndex] = UInt8(total & 0xFF)
-   chip.PC += 2
 }
 
 /// Set Vx = Vy.
@@ -408,7 +398,6 @@ func MOVE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    let total: Int = Int(chip.registers.array[xIndex]) + Int((chip.registers.array[yIndex]))
    
    chip.registers.array[xIndex] = UInt8(total & 0xFF)
-   chip.PC += 2
 }
 
 /// Set Vx = Vx OR Vy.
@@ -430,7 +419,6 @@ func OR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.registers.array[xIndex] |= chip.registers.array[yIndex]
-   chip.PC += 2
 }
 
 
@@ -453,7 +441,6 @@ func AND(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.registers.array[xIndex] &= chip.registers.array[yIndex]
-   chip.PC += 2
 }
 
 /// Set Vx = Vx XOR Vy.
@@ -475,7 +462,6 @@ func XOR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.registers.array[xIndex] ^= chip.registers.array[yIndex]
-   chip.PC += 2
 }
 
 /// Set Vx = Vx + Vy, set VF = carry.
@@ -502,7 +488,6 @@ func ADDR (opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.registers.array[xIndex] = UInt8(total & 0xFF)
-   chip.PC += 2
 }
 
 /// Set Vx = Vx - Vy, set VF = NOT borrow.
@@ -532,7 +517,6 @@ func SUB(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    let total: Int = Int(chip.registers.array[xIndex]) - Int((chip.registers.array[yIndex]))
    
    chip.registers.array[xIndex] = UInt8(total & 0xFF)
-   chip.PC += 2
 }
 
 
@@ -554,7 +538,6 @@ func SHR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    
    chip.registers.array[Int(0x0F)] = chip.registers.array[xIndex] & 0b00000001
    chip.registers.array[xIndex] >>= 1
-   chip.PC += 2
 }
 
 /// Set Vx = Vy - Vx, set VF = NOT borrow.
@@ -584,7 +567,6 @@ func SUBN(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    let total: Int = Int(chip.registers.array[yIndex]) - Int((chip.registers.array[xIndex]))
    
    chip.registers.array[xIndex] = UInt8(total & 0xFF)
-   chip.PC += 2
 }
 
 /// Set Vx = Vx SHL 1.
@@ -605,7 +587,6 @@ func SHL(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    
    chip.registers.array[Int(0x0F)] = (chip.registers.array[xIndex] & 0b10000000) >> 7
    chip.registers.array[xIndex] <<= 1
-   chip.PC += 2
 }
 
 /// Skip next instruction if Vx != Vy.
@@ -627,8 +608,6 @@ func SKRNE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    if chip.registers.array[Int(xIndex)] != chip.registers.array[Int(yIndex)]  {
-      chip.PC += 4
-   } else {
       chip.PC += 2
    }
 }
@@ -650,7 +629,6 @@ func LOADI(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.I = (address & 0xFFF)
-   chip.PC += 2
 }
 
 /// Jump to location nnn + V0.
@@ -692,7 +670,6 @@ func RAND(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.registers.array[xIndex] = UInt8(Int.random(in: 0..<256)) & value
-   chip.PC += 2
 }
 
 /// Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
@@ -737,8 +714,6 @@ func DRAW(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
          }
       }
    }
-   
-   chip.PC += 2
 }
 
 /// Skip next instruction if key with the value of Vx is pressed.
@@ -759,8 +734,6 @@ func SKPR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    if chip.keyboard[xIndex] == 0x01 {
-      chip.PC += 4
-   } else {
       chip.PC += 2
    }
 }
@@ -783,8 +756,6 @@ func SKUP(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    if chip.keyboard[xIndex] == 0x00 {
-      chip.PC += 4
-   } else {
       chip.PC += 2
    }
 }
@@ -806,7 +777,6 @@ func MOVED(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.registers.array[xIndex] = chip.DT
-   chip.PC += 2
 }
 
 /// Wait for a key press, store the value of the key in Vx.
@@ -832,8 +802,6 @@ func KEYD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
          break
       }
    }
-   
-   chip.PC += 2
 }
 
 /// Set delay timer = Vx.
@@ -853,7 +821,6 @@ func LOADD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.DT = chip.registers.array[xIndex]
-   chip.PC += 2
 }
 
 /// Set sound timer = Vx.
@@ -873,7 +840,6 @@ func LOADS(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.ST = chip.registers.array[xIndex]
-   chip.PC += 2
 }
 
 /// Set I = I + Vx.
@@ -893,7 +859,6 @@ func ADDI(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.I += UInt16(chip.registers.array[xIndex])
-   chip.PC += 2
 }
 
 /// Set I = location of sprite for digit Vx.
@@ -913,7 +878,6 @@ func LDSPR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    chip.I = UInt16(xIndex * 5)
-   chip.PC += 2
 }
 
 /// Store BCD representation of Vx in memory locations I, I+1, and I+2.
@@ -935,7 +899,6 @@ func BCD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    chip.ram[Int(chip.I + 0)] = UInt8((Int(chip.registers.array[xIndex]) / 100) % 10)
    chip.ram[Int(chip.I + 1)] = UInt8((Int(chip.registers.array[xIndex]) / 10 ) % 10)
    chip.ram[Int(chip.I + 2)] = UInt8((Int(chip.registers.array[xIndex]) / 1  ) % 10)
-   chip.PC += 2
 }
 
 /// Store registers V0 through Vx in memory starting at location I.
@@ -957,7 +920,6 @@ func STOR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    for n in 0...xIndex {
       chip.ram[Int(chip.I) + n] = chip.registers.array[n]
    }
-   chip.PC += 2
 }
 
 /// Read registers V0 through Vx from memory starting at location I.
@@ -979,6 +941,5 @@ func READ(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    for n in 0...xIndex {
       chip.registers.array[n] = chip.ram[Int(chip.I) + n]
    }
-   chip.PC += 2
 }
 
