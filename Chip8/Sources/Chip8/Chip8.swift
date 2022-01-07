@@ -25,7 +25,7 @@ public class ObservableArray<T>: ObservableObject {
 }
 
 extension String: LocalizedError {
-    public var errorDescription: String? { return self }
+   public var errorDescription: String? { return self }
 }
 
 enum Chip8Error: Error {
@@ -34,32 +34,17 @@ enum Chip8Error: Error {
    case opcodeNotImplemented
 }
 
-public struct InstructionInfo: Identifiable {
-   public var id = UUID()
-   public var opcodeName: String = ""
-   public var operation: String = ""
-   public var addr: String = ""
-//   @Published public var issy: Bool
-   //public let bindingD: Binding<Bool> = Binding<Bool>()
-
-//   init(opcodeName1: String, operation1: String, addr1: String, issy1: Bool) {
-//
-//      self.opcodeName = opcodeName1
-//      self.operation = operation1
-//      self.addr = addr1
-//      self.issy = issy1
-//
-////      self.bindingD = Binding<Bool>(get: { self.issy }, set: { self.issy = $0 })
-//
-//   }
-   
-
+public struct InstructionInfo {
+   public var description: String = ""
+   public var address: UInt32
+   public var breakHere: Bool = false
+   public var instruction: UInt32
 }
 
 public class Chip8 : ObservableObject {
    @Published public var registers = ObservableArray<UInt8>(array: [UInt8](repeatElement(0x0, count: REGISTER_SIZE)))
-   public var I: UInt16 = 0x00
-   public var PC: UInt16 = 0x00
+   @Published public var I: UInt16 = 0x00
+   @Published public var PC: UInt16 = 0x00
    public var SP: UInt8 = 0x00
    public var DT: UInt8 = 0x00
    public var ST: UInt8 = 0x00
@@ -69,7 +54,6 @@ public class Chip8 : ObservableObject {
    public var display: Display
    public var gameTimer: Timer?
    public var delayTimer: Timer?
-   @Published public var currentInstruction: UUID?
    @Published public var allInstructions: [InstructionInfo]
    public var currentChip: Chip8?
    private var romSize: Int
@@ -118,21 +102,14 @@ public class Chip8 : ObservableObject {
       
       if let operation = opcodeMap[Opcode(instruction: instruction)] {
          do {
-            ///ARC todo -- this loop is horrible, need lookup
-            if let foo = allInstructions.first(where: {$0.addr == String(format: "0x%04X", Int(PC))}) {
-               DispatchQueue.main.async {
-
-               self.currentInstruction = foo.id
+            if let instr = allInstructions.first(where: {$0.instruction == instruction}) {
+               if instr.breakHere {
+                  gameTimer?.invalidate()
+                  delayTimer?.invalidate()
                }
             }
             
             try operation(Opcode(instruction: instruction), &currentChip!, false)
-            
-            if (String(format: "0x%04X", instruction) == "0x7B08")
-            {
-               gameTimer?.invalidate()
-               delayTimer?.invalidate()
-            }
          }
          catch {
             print("error calling operation. \(error)")
@@ -151,19 +128,19 @@ public class Chip8 : ObservableObject {
    
    public func ProcessAllInstructions() {
       var chippy: Chip8 = Chip8()
-      for pc in stride(from: 0x200, to: romSize, by: 1) {
-         let instruction = UInt32((UInt32(ram[pc+0]) << 8) |
-                                  (UInt32(ram[pc+1]) << 0) )
+      for addr in stride(from: 0x200, to: romSize, by: 1) {
+         let instruction = UInt32((UInt32(ram[addr+0]) << 8) |
+                                  (UInt32(ram[addr+1]) << 0) )
          
          if let operation = opcodeMap[Opcode(instruction: instruction)] {
             do {
                try operation(Opcode(instruction: instruction), &chippy, true)
             }
             catch {
-               //don't judge, using error handling for logic flow kept things simple
-               self.allInstructions.append(InstructionInfo( opcodeName: String("\(error)"),
-                                                            operation: String(format: "0x%04X", instruction),
-                                                            addr: String(format: "0x%04X", pc)))
+               self.allInstructions.append(InstructionInfo(description: String("\(error)"),
+                                                           address: UInt32(addr),
+                                                           breakHere: false,
+                                                           instruction: instruction))
             }
          }
       }
@@ -178,40 +155,40 @@ public class Chip8 : ObservableObject {
    }
    
    let opcodeMap =
-         [Opcode(0x0, 0x0, 0xE, 0x0): CLS,
-          Opcode(0x0, 0x0, 0xE, 0xE): RTS,
-          Opcode(0x1, nil, nil, nil): JUMP,
-          Opcode(0x2, nil, nil, nil): CALL,
-          Opcode(0x3, nil, nil, nil): SKE,
-          Opcode(0x4, nil, nil, nil): SKNE,
-          Opcode(0x5, nil, nil, 0x0): SKRE,
-          Opcode(0x6, nil, nil, nil): LOAD,
-          Opcode(0x7, nil, nil, nil): ADD,
-          Opcode(0x8, nil, nil, 0x0): MOVE,
-          Opcode(0x8, nil, nil, 0x1): OR,
-          Opcode(0x8, nil, nil, 0x2): AND,
-          Opcode(0x8, nil, nil, 0x3): XOR,
-          Opcode(0x8, nil, nil, 0x4): ADDR,
-          Opcode(0x8, nil, nil, 0x5): SUB,
-          Opcode(0x8, nil, nil, 0x6): SHR,
-          Opcode(0x8, nil, nil, 0x7): SUBN,
-          Opcode(0x8, nil, nil, 0xE): SHL,
-          Opcode(0x9, nil, nil, 0x0): SKRNE,
-          Opcode(0xA, nil, nil, nil): LOADI,
-          Opcode(0xB, nil, nil, nil): JUMPI,
-          Opcode(0xC, nil, nil, nil): RAND,
-          Opcode(0xD, nil, nil, nil): DRAW,
-          Opcode(0xE, nil, 0x9, 0xE): SKPR,
-          Opcode(0xE, nil, 0xA, 0x1): SKUP,
-          Opcode(0xF, nil, 0x0, 0x7): MOVED,
-          Opcode(0xF, nil, 0x0, 0xA): KEYD,
-          Opcode(0xF, nil, 0x1, 0x5): LOADD,
-          Opcode(0xF, nil, 0x1, 0x8): LOADS,
-          Opcode(0xF, nil, 0x1, 0xE): ADDI,
-          Opcode(0xF, nil, 0x2, 0x9): LDSPR,
-          Opcode(0xF, nil, 0x3, 0x3): BCD,
-          Opcode(0xF, nil, 0x5, 0x5): STOR,
-          Opcode(0xF, nil, 0x6, 0x5): READ]
+   [Opcode(0x0, 0x0, 0xE, 0x0): CLS,
+    Opcode(0x0, 0x0, 0xE, 0xE): RTS,
+    Opcode(0x1, nil, nil, nil): JUMP,
+    Opcode(0x2, nil, nil, nil): CALL,
+    Opcode(0x3, nil, nil, nil): SKE,
+    Opcode(0x4, nil, nil, nil): SKNE,
+    Opcode(0x5, nil, nil, 0x0): SKRE,
+    Opcode(0x6, nil, nil, nil): LOAD,
+    Opcode(0x7, nil, nil, nil): ADD,
+    Opcode(0x8, nil, nil, 0x0): MOVE,
+    Opcode(0x8, nil, nil, 0x1): OR,
+    Opcode(0x8, nil, nil, 0x2): AND,
+    Opcode(0x8, nil, nil, 0x3): XOR,
+    Opcode(0x8, nil, nil, 0x4): ADDR,
+    Opcode(0x8, nil, nil, 0x5): SUB,
+    Opcode(0x8, nil, nil, 0x6): SHR,
+    Opcode(0x8, nil, nil, 0x7): SUBN,
+    Opcode(0x8, nil, nil, 0xE): SHL,
+    Opcode(0x9, nil, nil, 0x0): SKRNE,
+    Opcode(0xA, nil, nil, nil): LOADI,
+    Opcode(0xB, nil, nil, nil): JUMPI,
+    Opcode(0xC, nil, nil, nil): RAND,
+    Opcode(0xD, nil, nil, nil): DRAW,
+    Opcode(0xE, nil, 0x9, 0xE): SKPR,
+    Opcode(0xE, nil, 0xA, 0x1): SKUP,
+    Opcode(0xF, nil, 0x0, 0x7): MOVED,
+    Opcode(0xF, nil, 0x0, 0xA): KEYD,
+    Opcode(0xF, nil, 0x1, 0x5): LOADD,
+    Opcode(0xF, nil, 0x1, 0x8): LOADS,
+    Opcode(0xF, nil, 0x1, 0xE): ADDI,
+    Opcode(0xF, nil, 0x2, 0x9): LDSPR,
+    Opcode(0xF, nil, 0x3, 0x3): BCD,
+    Opcode(0xF, nil, 0x5, 0x5): STOR,
+    Opcode(0xF, nil, 0x6, 0x5): READ]
 }
 
 
@@ -227,7 +204,7 @@ func CLS(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    if throwDescription {
       throw "Clear Screen"
    }
-      
+   
    chip.display.clear()
    chip.PC += 2
 }
@@ -760,7 +737,7 @@ func DRAW(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
          }
       }
    }
-
+   
    chip.PC += 2
 }
 

@@ -32,8 +32,9 @@ struct ContentView: View {
             }
             Button(action: { chip8.Step() }) {
                Label("Record Progress", systemImage: "forward.fill")
-            }
+            }            
          }
+         
          // Aspect ratio of 2 comes from 640 width / 320 height
          SpriteView(scene: chip8.display).aspectRatio(2, contentMode: .fit)
       }
@@ -89,23 +90,34 @@ struct RomView: View {
    }
 }
 
+struct RowInstructionInfo: Identifiable {
+   let id = UUID()
+   let address: String
+   let instruction: String
+   let description: String
+   let breakpoint: Binding<Bool>
+}
+
 struct InstrView: View {
    @Environment(\.defaultMinListRowHeight) var minRowHeight
    @ObservedObject var currentChip: Chip8
-   @State private var sortOrder = [KeyPathComparator(\InstructionInfo.operation)]
-   @State private var vibrateOnRing = false
    @State private var idealWidth: CGFloat = 20
    
    var body: some View {
       GroupBox() {
-         Table(currentChip.allInstructions, selection: $currentChip.currentInstruction, sortOrder: $sortOrder) {
-            TableColumn("") { _ in Toggle("", isOn: $vibrateOnRing )}.width(min: idealWidth, max: idealWidth)
-            TableColumn("Address", value: \.addr).width(ideal: idealWidth)
-            TableColumn("Raw Op", value: \.operation).width(ideal: idealWidth)
-            TableColumn("Decoded Op", value: \.opcodeName).width(ideal: idealWidth)
-         }
-         .frame(minHeight: minRowHeight * 15)
-         .cornerRadius(5)
+         Table {
+            TableColumn("") { Toggle("", isOn: $0.breakpoint ) }.width(min: idealWidth, max: idealWidth)
+            TableColumn("Address") { Text($0.address) }.width(ideal: idealWidth)
+            TableColumn("Raw Op") { Text($0.instruction) }.width(ideal: idealWidth)
+            TableColumn("Decoded Op") { Text($0.description) }.width(ideal: idealWidth * 7)
+         } rows: {
+            ForEach($currentChip.allInstructions.indices) { i in
+               TableRow(RowInstructionInfo(address: String(format: "0x%04X", currentChip.allInstructions[i].address),
+                                           instruction:  String(format: "0x%04X", currentChip.allInstructions[i].instruction),
+                                           description: currentChip.allInstructions[i].description,
+                                           breakpoint: $currentChip.allInstructions[i].breakHere))
+            }
+         }.frame(minHeight: minRowHeight * 15)
       }.padding(5)
    }
 }
@@ -133,7 +145,7 @@ struct RegisterView: View {
                              value: String(format: "0x%04X", currentChip.PC)));
             TableRow(RowData(name: "SP",
                              value: String(format: "0x%04X", currentChip.SP)));
-            ForEach(0..<currentChip.registers.array.count, id: \.self) {
+            ForEach(currentChip.registers.array.indices, id: \.self) {
                TableRow(RowData(name: String(format: "V%01X", $0),
                                 value: String(format: "0x%02X", currentChip.registers.array[$0])))
             }
