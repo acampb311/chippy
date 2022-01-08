@@ -6,4 +6,4 @@ Test ROM from: https://github.com/corax89/chip8-test-rom
 
 
 Breakpoint in action with Space Invaders:
-![invader](https://user-images.githubusercontent.com/4216170/148653853-829962f1-8557-4560-8708-7ee3eac43318.gif)
+![2022-01-08 11 40 29](https://user-images.githubusercontent.com/4216170/148654119-4465440c-34ca-47c2-9bce-a354cee712ba.gif)
