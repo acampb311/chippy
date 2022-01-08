@@ -7,22 +7,12 @@
 
 import Foundation
 import SpriteKit
-import Combine
 import SwiftUI
+import Collections
 
 let STACK_SIZE = 16
 let RAM_SIZE = 4096
 let REGISTER_SIZE = 16
-
-public class ObservableArray<T>: ObservableObject {
-   
-   public var array:[T] = []
-   var cancellables = [AnyCancellable]()
-   
-   init(array: [T]) {
-      self.array = array
-   }
-}
 
 extension String: LocalizedError {
    public var errorDescription: String? { return self }
@@ -42,21 +32,23 @@ public struct InstructionInfo {
 }
 
 public class Chip8 : ObservableObject {
-   @Published public var registers = ObservableArray<UInt8>(array: [UInt8](repeatElement(0x0, count: REGISTER_SIZE)))
-   public var I: UInt16 = 0x00
-   public var PC: UInt16 = 0x00
-   public var SP: UInt8 = 0x00
-   public var DT: UInt8 = 0x00
-   public var ST: UInt8 = 0x00
-   public var ram: [UInt8] = [UInt8](repeatElement(0x00, count: RAM_SIZE))
-   public var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
-   public var keyboard = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+   @Published public var visibileData: OrderedDictionary<String,String>
+   @Published public var allInstructions: [InstructionInfo]
    public var display: Display
    public var gameTimer: Timer?
    public var delayTimer: Timer?
-   @Published public var allInstructions: [InstructionInfo]
    public var currentChip: Chip8?
-   private var romSize: Int
+   
+   var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+   var I: UInt16 = 0x00
+   var PC: UInt16 = 0x00
+   var SP: UInt8 = 0x00
+   var DT: UInt8 = 0x00
+   var ST: UInt8 = 0x00
+   var ram: [UInt8] = [UInt8](repeatElement(0x00, count: RAM_SIZE))
+   var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
+   var keyboard = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+   var romSize: Int
    
    let font: [UInt8] = [ 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                          0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -82,7 +74,22 @@ public class Chip8 : ObservableObject {
       display.scaleMode = .aspectFill
       display.createDisplay(pixelsWide: 64, pixelsHigh: 32)
       allInstructions = []
+      visibileData = [:]
       romSize = 0
+
+      PopulateVisibleData()
+   }
+   
+   func PopulateVisibleData() {
+      DispatchQueue.main.async {
+         self.visibileData["PC"] = String(format: "0x%04X", self.PC)
+         self.visibileData["I"] = String(format: "0x%04X", self.I)
+         self.visibileData["SP"] = String(format: "0x%04X", self.SP)
+         for i in self.registers.indices {
+//            self.visibileData[i] = Int(self.registers[i])
+            self.visibileData[String(format: "V%01X", i)] = String(format: "0x%02X", self.registers[i])
+         }
+      }
    }
    
    @objc
@@ -110,6 +117,7 @@ public class Chip8 : ObservableObject {
             }
             
             try operation(Opcode(instruction: instruction), &currentChip!, false)
+            PopulateVisibleData()
          }
          catch {
             print("error calling operation. \(error)")
@@ -155,40 +163,42 @@ public class Chip8 : ObservableObject {
    }
    
    let opcodeMap =
-   [Opcode(0x0, 0x0, 0xE, 0x0): CLS,
-    Opcode(0x0, 0x0, 0xE, 0xE): RTS,
-    Opcode(0x1, nil, nil, nil): JUMP,
-    Opcode(0x2, nil, nil, nil): CALL,
-    Opcode(0x3, nil, nil, nil): SKE,
-    Opcode(0x4, nil, nil, nil): SKNE,
-    Opcode(0x5, nil, nil, 0x0): SKRE,
-    Opcode(0x6, nil, nil, nil): LOAD,
-    Opcode(0x7, nil, nil, nil): ADD,
-    Opcode(0x8, nil, nil, 0x0): MOVE,
-    Opcode(0x8, nil, nil, 0x1): OR,
-    Opcode(0x8, nil, nil, 0x2): AND,
-    Opcode(0x8, nil, nil, 0x3): XOR,
-    Opcode(0x8, nil, nil, 0x4): ADDR,
-    Opcode(0x8, nil, nil, 0x5): SUB,
-    Opcode(0x8, nil, nil, 0x6): SHR,
-    Opcode(0x8, nil, nil, 0x7): SUBN,
-    Opcode(0x8, nil, nil, 0xE): SHL,
-    Opcode(0x9, nil, nil, 0x0): SKRNE,
-    Opcode(0xA, nil, nil, nil): LOADI,
-    Opcode(0xB, nil, nil, nil): JUMPI,
-    Opcode(0xC, nil, nil, nil): RAND,
-    Opcode(0xD, nil, nil, nil): DRAW,
-    Opcode(0xE, nil, 0x9, 0xE): SKPR,
-    Opcode(0xE, nil, 0xA, 0x1): SKUP,
-    Opcode(0xF, nil, 0x0, 0x7): MOVED,
-    Opcode(0xF, nil, 0x0, 0xA): KEYD,
-    Opcode(0xF, nil, 0x1, 0x5): LOADD,
-    Opcode(0xF, nil, 0x1, 0x8): LOADS,
-    Opcode(0xF, nil, 0x1, 0xE): ADDI,
-    Opcode(0xF, nil, 0x2, 0x9): LDSPR,
-    Opcode(0xF, nil, 0x3, 0x3): BCD,
-    Opcode(0xF, nil, 0x5, 0x5): STOR,
-    Opcode(0xF, nil, 0x6, 0x5): READ]
+   [
+       Opcode(0x0, 0x0, 0xE, 0x0): CLS,
+       Opcode(0x0, 0x0, 0xE, 0xE): RTS,
+       Opcode(0x1, nil, nil, nil): JUMP,
+       Opcode(0x2, nil, nil, nil): CALL,
+       Opcode(0x3, nil, nil, nil): SKE,
+       Opcode(0x4, nil, nil, nil): SKNE,
+       Opcode(0x5, nil, nil, 0x0): SKRE,
+       Opcode(0x6, nil, nil, nil): LOAD,
+       Opcode(0x7, nil, nil, nil): ADD,
+       Opcode(0x8, nil, nil, 0x0): MOVE,
+       Opcode(0x8, nil, nil, 0x1): OR,
+       Opcode(0x8, nil, nil, 0x2): AND,
+       Opcode(0x8, nil, nil, 0x3): XOR,
+       Opcode(0x8, nil, nil, 0x4): ADDR,
+       Opcode(0x8, nil, nil, 0x5): SUB,
+       Opcode(0x8, nil, nil, 0x6): SHR,
+       Opcode(0x8, nil, nil, 0x7): SUBN,
+       Opcode(0x8, nil, nil, 0xE): SHL,
+       Opcode(0x9, nil, nil, 0x0): SKRNE,
+       Opcode(0xA, nil, nil, nil): LOADI,
+       Opcode(0xB, nil, nil, nil): JUMPI,
+       Opcode(0xC, nil, nil, nil): RAND,
+       Opcode(0xD, nil, nil, nil): DRAW,
+       Opcode(0xE, nil, 0x9, 0xE): SKPR,
+       Opcode(0xE, nil, 0xA, 0x1): SKUP,
+       Opcode(0xF, nil, 0x0, 0x7): MOVED,
+       Opcode(0xF, nil, 0x0, 0xA): KEYD,
+       Opcode(0xF, nil, 0x1, 0x5): LOADD,
+       Opcode(0xF, nil, 0x1, 0x8): LOADS,
+       Opcode(0xF, nil, 0x1, 0xE): ADDI,
+       Opcode(0xF, nil, 0x2, 0x9): LDSPR,
+       Opcode(0xF, nil, 0x3, 0x3): BCD,
+       Opcode(0xF, nil, 0x5, 0x5): STOR,
+       Opcode(0xF, nil, 0x6, 0x5): READ
+   ]
 }
 
 
@@ -283,7 +293,7 @@ func SKE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "Skip if \(value) == \(String(format: "V%01X", xIndex))"
    }
    
-   if chip.registers.array[Int(xIndex)] == value {
+   if chip.registers[Int(xIndex)] == value {
       chip.PC += 2
    }
 }
@@ -306,7 +316,7 @@ func SKNE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "Skip if \(String(format: "0x%02X", value)) != \(String(format: "V%01X", xIndex))"
    }
    
-   if chip.registers.array[Int(xIndex)] != value {
+   if chip.registers[Int(xIndex)] != value {
       chip.PC += 2
    }
 }
@@ -329,7 +339,7 @@ func SKRE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "Skip if \(String(format: "V%01X", xIndex)) == \(String(format: "V%01X", yIndex))"
    }
    
-   if chip.registers.array[Int(xIndex)] == chip.registers.array[Int(yIndex)]  {
+   if chip.registers[Int(xIndex)] == chip.registers[Int(yIndex)]  {
       chip.PC += 2
    }
 }
@@ -352,7 +362,7 @@ func LOAD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) = \(String(format: "0x%02X", value))"
    }
    
-   chip.registers.array[xIndex] = value
+   chip.registers[xIndex] = value
 }
 
 /// Set Vx = Vx + kk.
@@ -373,8 +383,8 @@ func ADD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) += \(String(format: "0x%02X", value))"
    }
    
-   let total: Int = Int(chip.registers.array[xIndex]) + Int(value)
-   chip.registers.array[xIndex] = UInt8(total & 0xFF)
+   let total: Int = Int(chip.registers[xIndex]) + Int(value)
+   chip.registers[xIndex] = UInt8(total & 0xFF)
 }
 
 /// Set Vx = Vy.
@@ -395,9 +405,9 @@ func MOVE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) = \(String(format: "V%01X", yIndex))"
    }
    
-   let total: Int = Int(chip.registers.array[xIndex]) + Int((chip.registers.array[yIndex]))
+   let total: Int = Int(chip.registers[xIndex]) + Int((chip.registers[yIndex]))
    
-   chip.registers.array[xIndex] = UInt8(total & 0xFF)
+   chip.registers[xIndex] = UInt8(total & 0xFF)
 }
 
 /// Set Vx = Vx OR Vy.
@@ -418,7 +428,7 @@ func OR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) |= \(String(format: "V%01X", yIndex))"
    }
    
-   chip.registers.array[xIndex] |= chip.registers.array[yIndex]
+   chip.registers[xIndex] |= chip.registers[yIndex]
 }
 
 
@@ -440,7 +450,7 @@ func AND(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) &= \(String(format: "V%01X", yIndex))"
    }
    
-   chip.registers.array[xIndex] &= chip.registers.array[yIndex]
+   chip.registers[xIndex] &= chip.registers[yIndex]
 }
 
 /// Set Vx = Vx XOR Vy.
@@ -461,7 +471,7 @@ func XOR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) ^= \(String(format: "V%01X", yIndex))"
    }
    
-   chip.registers.array[xIndex] ^= chip.registers.array[yIndex]
+   chip.registers[xIndex] ^= chip.registers[yIndex]
 }
 
 /// Set Vx = Vx + Vy, set VF = carry.
@@ -482,12 +492,12 @@ func ADDR (opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) += \(String(format: "V%01X", yIndex))"
    }
    
-   let total: Int = Int(chip.registers.array[xIndex]) + Int((chip.registers.array[yIndex]))
+   let total: Int = Int(chip.registers[xIndex]) + Int((chip.registers[yIndex]))
    if total > 255 {
-      chip.registers.array[Int(0x0F)] = 0x01
+      chip.registers[0xF] = 1
    }
    
-   chip.registers.array[xIndex] = UInt8(total & 0xFF)
+   chip.registers[xIndex] = UInt8(total & 0xFF)
 }
 
 /// Set Vx = Vx - Vy, set VF = NOT borrow.
@@ -504,19 +514,19 @@ func SUB(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw Chip8Error.invalidOpcodeContents
    }
    
-   if chip.registers.array[xIndex] > chip.registers.array[yIndex] {
-      chip.registers.array[Int(0x0F)] = 0x01
+   if chip.registers[xIndex] > chip.registers[yIndex] {
+      chip.registers[0xF] = 1
    } else {
-      chip.registers.array[Int(0x0F)] = 0x00
+      chip.registers[0xF] = 0
    }
    
    if throwDescription {
       throw "\(String(format: "V%01X", xIndex)) -= \(String(format: "V%01X", yIndex))"
    }
    
-   let total: Int = Int(chip.registers.array[xIndex]) - Int((chip.registers.array[yIndex]))
+   let total: Int = Int(chip.registers[xIndex]) - Int((chip.registers[yIndex]))
    
-   chip.registers.array[xIndex] = UInt8(total & 0xFF)
+   chip.registers[xIndex] = UInt8(total & 0xFF)
 }
 
 
@@ -536,8 +546,8 @@ func SHR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) = \(String(format: "V%01X", xIndex)) SHR 1"
    }
    
-   chip.registers.array[Int(0x0F)] = chip.registers.array[xIndex] & 0b00000001
-   chip.registers.array[xIndex] >>= 1
+   chip.registers[0xF] = chip.registers[xIndex] & 0b00000001
+   chip.registers[xIndex] >>= 1
 }
 
 /// Set Vx = Vy - Vx, set VF = NOT borrow.
@@ -558,15 +568,15 @@ func SUBN(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) = \(String(format: "V%01X", yIndex)) - \(String(format: "V%01X", xIndex))"
    }
    
-   if chip.registers.array[yIndex] > chip.registers.array[xIndex] {
-      chip.registers.array[Int(0x0F)] = 0x01
+   if chip.registers[yIndex] > chip.registers[xIndex] {
+      chip.registers[0xF] = 1
    } else {
-      chip.registers.array[Int(0x0F)] = 0x00
+      chip.registers[0xF] = 0
    }
    
-   let total: Int = Int(chip.registers.array[yIndex]) - Int((chip.registers.array[xIndex]))
+   let total: Int = Int(chip.registers[yIndex]) - Int((chip.registers[xIndex]))
    
-   chip.registers.array[xIndex] = UInt8(total & 0xFF)
+   chip.registers[xIndex] = UInt8(total & 0xFF)
 }
 
 /// Set Vx = Vx SHL 1.
@@ -585,8 +595,8 @@ func SHL(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%01X", xIndex)) = \(String(format: "V%01X", xIndex)) SHL 1"
    }
    
-   chip.registers.array[Int(0x0F)] = (chip.registers.array[xIndex] & 0b10000000) >> 7
-   chip.registers.array[xIndex] <<= 1
+   chip.registers[0xF] = (chip.registers[xIndex] & 0b10000000) >> 7
+   chip.registers[xIndex] <<= 1
 }
 
 /// Skip next instruction if Vx != Vy.
@@ -607,7 +617,7 @@ func SKRNE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "Skip if \(String(format: "V%01X", xIndex)) != \(String(format: "V%01X", yIndex))"
    }
    
-   if chip.registers.array[Int(xIndex)] != chip.registers.array[Int(yIndex)]  {
+   if chip.registers[Int(xIndex)] != chip.registers[Int(yIndex)]  {
       chip.PC += 2
    }
 }
@@ -647,7 +657,7 @@ func JUMPI(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "Jump \(String(format: "V%04X", address)) + V0"
    }
    
-   chip.PC = (UInt16(chip.registers.array[0]) & 0xFFF) + address
+   chip.PC = (UInt16(chip.registers[0]) & 0xFFF) + address
 }
 
 /// Set Vx = random byte AND kk.
@@ -669,7 +679,7 @@ func RAND(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%02X", xIndex)) = RAND & \(String(format: "V%02X", value))"
    }
    
-   chip.registers.array[xIndex] = UInt8(Int.random(in: 0..<256)) & value
+   chip.registers[xIndex] = UInt8(Int.random(in: 0..<256)) & value
 }
 
 /// Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
@@ -692,11 +702,11 @@ func DRAW(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "Draw x:\(String(format: "V[%01X]", xIndex)) y:\(String(format: "V[%01X]", yIndex)) h: \(mheight)"
    }
    
-   let opx = chip.registers.array[xIndex]
-   let opy = chip.registers.array[yIndex]
+   let opx = chip.registers[xIndex]
+   let opy = chip.registers[yIndex]
    
    // Clear the collision register
-   chip.registers.array[0xF] = 0
+   chip.registers[0xF] = 0
    
    for yline in 0..<mheight {
       let line = chip.ram[Int(chip.I)+Int(yline)]
@@ -709,7 +719,7 @@ func DRAW(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
             {
                // if there was a collision in any of the pixels, the function will return true.
                // we need to flip the VF register accordingly
-               chip.registers.array[0xF] = 1
+               chip.registers[0xF] = 1
             }
          }
       }
@@ -776,7 +786,7 @@ func MOVED(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "\(String(format: "V%02X", xIndex)) = DT"
    }
    
-   chip.registers.array[xIndex] = chip.DT
+   chip.registers[xIndex] = chip.DT
 }
 
 /// Wait for a key press, store the value of the key in Vx.
@@ -798,7 +808,7 @@ func KEYD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    
    for i in 0..<16 {
       if chip.keyboard[i] == 0x01 {
-         chip.registers.array[xIndex] = UInt8(i)
+         chip.registers[xIndex] = UInt8(i)
          break
       }
    }
@@ -820,7 +830,7 @@ func LOADD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "DT = \(String(format: "V%02X", xIndex))"
    }
    
-   chip.DT = chip.registers.array[xIndex]
+   chip.DT = chip.registers[xIndex]
 }
 
 /// Set sound timer = Vx.
@@ -839,7 +849,7 @@ func LOADS(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "ST = \(String(format: "V%02X", xIndex))"
    }
    
-   chip.ST = chip.registers.array[xIndex]
+   chip.ST = chip.registers[xIndex]
 }
 
 /// Set I = I + Vx.
@@ -858,7 +868,7 @@ func ADDI(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "I += \(String(format: "V%02X", xIndex))"
    }
    
-   chip.I += UInt16(chip.registers.array[xIndex])
+   chip.I += UInt16(chip.registers[xIndex])
 }
 
 /// Set I = location of sprite for digit Vx.
@@ -896,9 +906,9 @@ func BCD(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
       throw "BCD"
    }
    
-   chip.ram[Int(chip.I + 0)] = UInt8((Int(chip.registers.array[xIndex]) / 100) % 10)
-   chip.ram[Int(chip.I + 1)] = UInt8((Int(chip.registers.array[xIndex]) / 10 ) % 10)
-   chip.ram[Int(chip.I + 2)] = UInt8((Int(chip.registers.array[xIndex]) / 1  ) % 10)
+   chip.ram[Int(chip.I + 0)] = UInt8((Int(chip.registers[xIndex]) / 100) % 10)
+   chip.ram[Int(chip.I + 1)] = UInt8((Int(chip.registers[xIndex]) / 10 ) % 10)
+   chip.ram[Int(chip.I + 2)] = UInt8((Int(chip.registers[xIndex]) / 1  ) % 10)
 }
 
 /// Store registers V0 through Vx in memory starting at location I.
@@ -918,7 +928,7 @@ func STOR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    for n in 0...xIndex {
-      chip.ram[Int(chip.I) + n] = chip.registers.array[n]
+      chip.ram[Int(chip.I) + n] = chip.registers[n]
    }
 }
 
@@ -939,7 +949,7 @@ func READ(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    }
    
    for n in 0...xIndex {
-      chip.registers.array[n] = chip.ram[Int(chip.I) + n]
+      chip.registers[n] = chip.ram[Int(chip.I) + n]
    }
 }
 
