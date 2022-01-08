@@ -2,32 +2,6 @@ import XCTest
 @testable import Chip8
 
 final class Chip8Tests: XCTestCase {
-   
-   func testXOR() throws {
-      var chip8 = Chip8()
-      
-      var a = false
-      var b = false
-      var c = a ^ b
-      print(a, " ", b, " ", c)
-      
-      a = true
-      b = false
-      c = a ^ b
-      print(a, " ", b, " ", c)
-
-      
-      a = false
-      b = true
-      c = a ^ b
-      print(a, " ", b, " ", c)
-      
-      a = true
-      b = true
-      c = a ^ b
-      print(a, " ", b, " ", c)
-   }
-   
     func testReturnFromSubroutine() throws {
        // Given
        var chip8 = Chip8()
@@ -35,10 +9,10 @@ final class Chip8Tests: XCTestCase {
        chip8.SP = 0x5
        
        // When
-       try RTS(opcode: Opcode(instruction: 0x00EE), chip: &chip8)
+       try RTS(opcode: Opcode(instruction: 0x00EE), chip: &chip8, throwDescription: false)
        
        // Then
-       XCTAssertEqual(chip8.PC, 0x07)
+       XCTAssertEqual(chip8.PC, 0x05)
        XCTAssertEqual(chip8.SP, 0x04)
     }
     
@@ -47,7 +21,7 @@ final class Chip8Tests: XCTestCase {
        var chip8 = Chip8()
        
        // When
-       try JUMP(opcode: Opcode(instruction: 0x1432), chip: &chip8)
+       try JUMP(opcode: Opcode(instruction: 0x1432), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.PC, 0x432)
@@ -58,7 +32,7 @@ final class Chip8Tests: XCTestCase {
        var chip8 = Chip8()
        
        // When
-       try LOAD(opcode: Opcode(instruction: 0x6EFF), chip: &chip8)
+       try LOAD(opcode: Opcode(instruction: 0x6EFF), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers[14], 0xFF)
@@ -69,8 +43,8 @@ final class Chip8Tests: XCTestCase {
        var chip8 = Chip8()
        
        // When
-       try LOAD(opcode: Opcode(instruction: 0x6EEE), chip: &chip8)
-       try ADD(opcode: Opcode(instruction: 0x7E11), chip: &chip8)
+       try LOAD(opcode: Opcode(instruction: 0x6EEE), chip: &chip8, throwDescription: false)
+       try ADD(opcode: Opcode(instruction: 0x7E11), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers[14], 0xFF)
@@ -81,14 +55,14 @@ final class Chip8Tests: XCTestCase {
        var chip8 = Chip8()
        
        // When
-       try LOADI(opcode: Opcode(instruction: 0xAABC), chip: &chip8)
+       try LOADI(opcode: Opcode(instruction: 0xAABC), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.I, 0xABC)
        
        
        // When
-       try LOADI(opcode: Opcode(instruction: 0xA100), chip: &chip8)
+       try LOADI(opcode: Opcode(instruction: 0xA100), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.I, 0x100)
@@ -103,7 +77,7 @@ final class Chip8Tests: XCTestCase {
        chip8.PC = 0x0ABC
        
        // When
-       try CALL(opcode: Opcode(instruction: 0x2DEF), chip: &chip8)
+       try CALL(opcode: Opcode(instruction: 0x2DEF), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.SP, 0x0D)
@@ -121,16 +95,16 @@ final class Chip8Tests: XCTestCase {
        chip8.PC = 0x02
 
        // When
-       try SKE(opcode: Opcode(instruction: 0x3FAB), chip: &chip8)
+       try SKE(opcode: Opcode(instruction: 0x3FAB), chip: &chip8, throwDescription: false)
+       
+       // Then
+       XCTAssertEqual(chip8.PC, 0x02)
+       
+       // When
+       try SKE(opcode: Opcode(instruction: 0x3FAA), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.PC, 0x04)
-       
-       // When
-       try SKE(opcode: Opcode(instruction: 0x3FAA), chip: &chip8)
-       
-       // Then
-       XCTAssertEqual(chip8.PC, 0x08)
     }
     
     func testSkipNextInstrNotEqual() throws {
@@ -142,16 +116,16 @@ final class Chip8Tests: XCTestCase {
        chip8.PC = 0x02
 
        // When
-       try SKNE(opcode: Opcode(instruction: 0x4FAB), chip: &chip8)
+       try SKNE(opcode: Opcode(instruction: 0x4FAB), chip: &chip8, throwDescription: false)
        
        // Then
-       XCTAssertEqual(chip8.PC, 0x06)
+       XCTAssertEqual(chip8.PC, 0x04)
        
        // When
-       try SKNE(opcode: Opcode(instruction: 0x4FAA), chip: &chip8)
+       try SKNE(opcode: Opcode(instruction: 0x4FAA), chip: &chip8, throwDescription: false)
        
        // Then
-       XCTAssertEqual(chip8.PC, 0x08)
+       XCTAssertEqual(chip8.PC, 0x04)
     }
     
     func testSkipNextInstrRegistersEqual() throws {
@@ -163,16 +137,16 @@ final class Chip8Tests: XCTestCase {
        chip8.PC = 0x02
 
        // When
-       try SKRE(opcode: Opcode(instruction: 0x5F00), chip: &chip8)
+       try SKRE(opcode: Opcode(instruction: 0x5F00), chip: &chip8, throwDescription: false)
        
        // Then
-       XCTAssertEqual(chip8.PC, 0x04)
+       XCTAssertEqual(chip8.PC, 0x02)
        
        // When
-       try SKRE(opcode: Opcode(instruction: 0x5F10), chip: &chip8)
+       try SKRE(opcode: Opcode(instruction: 0x5F10), chip: &chip8, throwDescription: false)
 
        // Then
-       XCTAssertEqual(chip8.PC, 0x08)
+       XCTAssertEqual(chip8.PC, 0x04)
     }
     
     func testStoreXinY() throws {
@@ -182,7 +156,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0x00, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
 
        // When
-       try MOVE(opcode: Opcode(instruction: 0x80F0), chip: &chip8)
+       try MOVE(opcode: Opcode(instruction: 0x80F0), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA])
@@ -195,7 +169,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0b11110000, 0b00110011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
 
        // When
-       try OR(opcode: Opcode(instruction: 0x8011), chip: &chip8)
+       try OR(opcode: Opcode(instruction: 0x8011), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0b11110011, 0b00110011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA])
@@ -208,7 +182,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0b11110000, 0b00110011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
 
        // When
-       try AND(opcode: Opcode(instruction: 0x8012), chip: &chip8)
+       try AND(opcode: Opcode(instruction: 0x8012), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0b00110000, 0b00110011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA])
@@ -221,7 +195,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0b11110000, 0b00110011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
 
        // When
-       try XOR(opcode: Opcode(instruction: 0x8013), chip: &chip8)
+       try XOR(opcode: Opcode(instruction: 0x8013), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0b11000011, 0b00110011, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA])
@@ -234,7 +208,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0x00, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try ADDR(opcode: Opcode(instruction: 0x8014), chip: &chip8)
+       try ADDR(opcode: Opcode(instruction: 0x8014), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
@@ -243,7 +217,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try ADDR(opcode: Opcode(instruction: 0x8014), chip: &chip8)
+       try ADDR(opcode: Opcode(instruction: 0x8014), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0x54, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])
@@ -256,7 +230,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0x00, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SUB(opcode: Opcode(instruction: 0x8015), chip: &chip8)
+       try SUB(opcode: Opcode(instruction: 0x8015), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0x56, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
@@ -265,7 +239,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0xFF, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SUB(opcode: Opcode(instruction: 0x8015), chip: &chip8)
+       try SUB(opcode: Opcode(instruction: 0x8015), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0x55, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])
@@ -278,7 +252,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0b00000111, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SHR(opcode: Opcode(instruction: 0x8016), chip: &chip8)
+       try SHR(opcode: Opcode(instruction: 0x8016), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0b00000011, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])
@@ -287,7 +261,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0b00000110, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SHR(opcode: Opcode(instruction: 0x8016), chip: &chip8)
+       try SHR(opcode: Opcode(instruction: 0x8016), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0b00000011, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
@@ -300,7 +274,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0x00, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SUBN(opcode: Opcode(instruction: 0x8017), chip: &chip8)
+       try SUBN(opcode: Opcode(instruction: 0x8017), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])
@@ -309,7 +283,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0xFF, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SUBN(opcode: Opcode(instruction: 0x8017), chip: &chip8)
+       try SUBN(opcode: Opcode(instruction: 0x8017), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0xAB, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
@@ -322,7 +296,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0b10000111, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SHL(opcode: Opcode(instruction: 0x801E), chip: &chip8)
+       try SHL(opcode: Opcode(instruction: 0x801E), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0b00001110, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])
@@ -331,7 +305,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0b00000110, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
        // When
-       try SHL(opcode: Opcode(instruction: 0x801E), chip: &chip8)
+       try SHL(opcode: Opcode(instruction: 0x801E), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0b00001100, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
@@ -346,10 +320,10 @@ final class Chip8Tests: XCTestCase {
        chip8.PC = 0x02
 
        // When
-       try SKRNE(opcode: Opcode(instruction: 0x9010), chip: &chip8)
+       try SKRNE(opcode: Opcode(instruction: 0x9010), chip: &chip8, throwDescription: false)
        
        // Then
-       XCTAssertEqual(chip8.PC, 0x06)
+       XCTAssertEqual(chip8.PC, 0x04)
        
        // Given
        chip8.registers = [0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
@@ -357,10 +331,10 @@ final class Chip8Tests: XCTestCase {
        chip8.PC = 0x02
        
        // When
-       try SKRNE(opcode: Opcode(instruction: 0x9010), chip: &chip8)
+       try SKRNE(opcode: Opcode(instruction: 0x9010), chip: &chip8, throwDescription: false)
 
        // Then
-       XCTAssertEqual(chip8.PC, 0x04)
+       XCTAssertEqual(chip8.PC, 0x02)
     }
     
     func testJumpToLocationWithReg() throws {
@@ -370,7 +344,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
        
        // When
-       try JUMPI(opcode: Opcode(instruction: 0xBABC), chip: &chip8)
+       try JUMPI(opcode: Opcode(instruction: 0xBABC), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.PC, 0xABD)
@@ -385,7 +359,7 @@ final class Chip8Tests: XCTestCase {
        chip8.DT = 0x45
        
        // When
-       try MOVED(opcode: Opcode(instruction: 0xF007), chip: &chip8)
+       try MOVED(opcode: Opcode(instruction: 0xF007), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA])
@@ -400,7 +374,7 @@ final class Chip8Tests: XCTestCase {
        chip8.DT = 0x45
        
        // When
-       try LOADD(opcode: Opcode(instruction: 0xF015), chip: &chip8)
+       try LOADD(opcode: Opcode(instruction: 0xF015), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.DT, 0x01)
@@ -415,7 +389,7 @@ final class Chip8Tests: XCTestCase {
        chip8.ST = 0x45
        
        // When
-       try LOADS(opcode: Opcode(instruction: 0xF018), chip: &chip8)
+       try LOADS(opcode: Opcode(instruction: 0xF018), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.ST, 0x01)
@@ -430,7 +404,7 @@ final class Chip8Tests: XCTestCase {
        chip8.I = 0x45
        
        // When
-       try ADDI(opcode: Opcode(instruction: 0xF01E), chip: &chip8)
+       try ADDI(opcode: Opcode(instruction: 0xF01E), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.I, 0x56)
@@ -445,7 +419,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [245, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA]
        
        // When
-       try BCD(opcode: Opcode(instruction: 0xF033), chip: &chip8)
+       try BCD(opcode: Opcode(instruction: 0xF033), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.ram[Int(chip8.I + 0)], 2)
@@ -462,7 +436,7 @@ final class Chip8Tests: XCTestCase {
        chip8.registers = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
        
        // When
-       try STOR(opcode: Opcode(instruction: 0xFF55), chip: &chip8)
+       try STOR(opcode: Opcode(instruction: 0xFF55), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.ram[Int(chip8.I + 0)], 0)
@@ -508,7 +482,7 @@ final class Chip8Tests: XCTestCase {
        chip8.ram[Int(chip8.I) + 15] = 0x0F
        
        // When
-       try READ(opcode: Opcode(instruction: 0xFF65), chip: &chip8)
+       try READ(opcode: Opcode(instruction: 0xFF65), chip: &chip8, throwDescription: false)
        
        // Then
        XCTAssertEqual(chip8.registers, [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F])
