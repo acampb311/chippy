@@ -49,7 +49,7 @@ func StopChipTimers(chip8: Chip8) {
 
 func StartChipTimers(chip8: Chip8) {
    DispatchQueue.global(qos: .userInteractive).async {
-      chip8.gameTimer = Timer(timeInterval: 1/300, target: chip8, selector: #selector(chip8.Step), userInfo: nil, repeats: true)
+      chip8.gameTimer = Timer(timeInterval: 1/1000, target: chip8, selector: #selector(chip8.Step), userInfo: nil, repeats: true)
       //         RunLoop.current.add(chip8.gameTimer!, forMode: .common)
       let runLoop = RunLoop.current
       runLoop.add(chip8.gameTimer!, forMode: .default)
@@ -81,7 +81,7 @@ struct RomView: View {
                url.startAccessingSecurityScopedResource(),
                let rom = try? [UInt8](Data(contentsOf: url))
             {
-               currentChip.loadRom(rom: rom)
+               currentChip.LoadRom(rom: rom)
                self.filename = url.lastPathComponent
                url.stopAccessingSecurityScopedResource()
             }
@@ -112,6 +112,7 @@ struct InstrView: View {
    
    var body: some View {
       GroupBox() {
+         
          Table {
             TableColumn("") { Toggle("", isOn: $0.breakpoint ) }.width(min: idealWidth, max: idealWidth)
             TableColumn("Address") { Text($0.address) }.width(ideal: idealWidth)
@@ -126,6 +127,7 @@ struct InstrView: View {
             }
          }.frame(minHeight: minRowHeight * 15)
       }.padding(5)
+      
    }
 }
 
@@ -144,7 +146,7 @@ struct RegisterView: View {
                TableRow(RowRegisterInfo(name: $0, value: currentChip.visibileData[$0] ?? ""))
             }
          }.frame(minHeight: minRowHeight * 15)
-         .cornerRadius(5)
+            .cornerRadius(5)
       }.padding(5)
    }
 }

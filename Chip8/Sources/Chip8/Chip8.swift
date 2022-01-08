@@ -49,6 +49,7 @@ public class Chip8 : ObservableObject {
    var stack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
    var keyboard = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
    var romSize: Int
+   var lastInstrBreak: UInt32 = 0x0000
    
    let font: [UInt8] = [ 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                          0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -85,8 +86,12 @@ public class Chip8 : ObservableObject {
          self.visibileData["PC"] = String(format: "0x%04X", self.PC)
          self.visibileData["I"] = String(format: "0x%04X", self.I)
          self.visibileData["SP"] = String(format: "0x%04X", self.SP)
+         
+         for i in self.stack.indices {
+            self.visibileData[String(format: "SP%01X", i)] = String(format: "0x%04X", self.stack[i])
+         }
+         
          for i in self.registers.indices {
-//            self.visibileData[i] = Int(self.registers[i])
             self.visibileData[String(format: "V%01X", i)] = String(format: "0x%02X", self.registers[i])
          }
       }
@@ -110,13 +115,19 @@ public class Chip8 : ObservableObject {
       if let operation = opcodeMap[Opcode(instruction: instruction)] {
          do {
             if let instr = allInstructions.first(where: {$0.instruction == instruction}) {
-               if instr.breakHere {
+               if instr.breakHere && lastInstrBreak != instruction {
                   gameTimer?.invalidate()
                   delayTimer?.invalidate()
+                  lastInstrBreak = instruction
+                  PC -= 2
+               }
+               else
+               {
+                  try operation(Opcode(instruction: instruction), &currentChip!, false)
+                  lastInstrBreak = 0x0000
                }
             }
             
-            try operation(Opcode(instruction: instruction), &currentChip!, false)
             PopulateVisibleData()
          }
          catch {
@@ -125,11 +136,19 @@ public class Chip8 : ObservableObject {
       }
    }
    
-   public func loadRom(rom: [UInt8]) {
+   public func LoadRom(rom: [UInt8]) {
+      registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+      I = 0
+      SP = 0
+      DT = 0
+      ST = 0
+      
+      allInstructions = []
       ram.replaceSubrange(0x200..<rom.count+0x200, with: rom)
       PC = 0x200 //Chip8 roms are traditionally loaded starting at byte 512, 0x200
       romSize = rom.count + 0x200
-      allInstructions = []
+      
+
       display.clear()
       ProcessAllInstructions()
    }
@@ -404,10 +423,8 @@ func MOVE(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    if throwDescription {
       throw "\(String(format: "V%01X", xIndex)) = \(String(format: "V%01X", yIndex))"
    }
-   
-   let total: Int = Int(chip.registers[xIndex]) + Int((chip.registers[yIndex]))
-   
-   chip.registers[xIndex] = UInt8(total & 0xFF)
+      
+   chip.registers[xIndex] = chip.registers[yIndex]
 }
 
 /// Set Vx = Vx OR Vy.
@@ -930,6 +947,8 @@ func STOR(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    for n in 0...xIndex {
       chip.ram[Int(chip.I) + n] = chip.registers[n]
    }
+   
+//   chip.I += UInt16(xIndex + 1)
 }
 
 /// Read registers V0 through Vx from memory starting at location I.
@@ -951,5 +970,7 @@ func READ(opcode: Opcode, chip: inout Chip8, throwDescription: Bool) throws {
    for n in 0...xIndex {
       chip.registers[n] = chip.ram[Int(chip.I) + n]
    }
+   
+//   chip.I += UInt16(xIndex + 1)
 }
 
