@@ -24,7 +24,8 @@ enum Chip8Error: Error {
    case opcodeNotImplemented
 }
 
-public struct InstructionInfo {
+public struct InstructionInfo : Identifiable {
+   public let id = UUID()
    public var description: String = ""
    public var address: UInt32
    public var breakHere: Bool = false

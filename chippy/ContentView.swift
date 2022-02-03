@@ -90,14 +90,6 @@ struct RomView: View {
    }
 }
 
-struct RowInstructionInfo: Identifiable {
-   let id = UUID()
-   let address: String
-   let instruction: String
-   let description: String
-   let breakpoint: Binding<Bool>
-}
-
 struct RowRegisterInfo: Identifiable {
    let id = UUID()
    let name: String
@@ -112,22 +104,13 @@ struct InstrView: View {
    
    var body: some View {
       GroupBox() {
-         
-         Table {
-            TableColumn("") { Toggle("", isOn: $0.breakpoint ) }.width(min: idealWidth, max: idealWidth)
-            TableColumn("Address") { Text($0.address) }.width(ideal: idealWidth)
-            TableColumn("Raw Op") { Text($0.instruction) }.width(ideal: idealWidth)
-            TableColumn("Decoded Op") { Text($0.description) }.width(ideal: idealWidth * 7)
-         } rows: {
-            ForEach($currentChip.allInstructions.indices) { i in
-               TableRow(RowInstructionInfo(address: String(format: "0x%04X", currentChip.allInstructions[i].address),
-                                           instruction:  String(format: "0x%04X", currentChip.allInstructions[i].instruction),
-                                           description: currentChip.allInstructions[i].description,
-                                           breakpoint: $currentChip.allInstructions[i].breakHere))
-            }
+         Table($currentChip.allInstructions) {
+            TableColumn("") { Toggle("", isOn: $0.breakHere ) }.width(min: idealWidth, max: idealWidth)
+            TableColumn("Address") { Text( String(format: "0x%04X", $0.address.wrappedValue) )}.width(ideal: idealWidth)
+            TableColumn("Raw Op") { Text( String(format: "0x%04X", $0.instruction.wrappedValue) )}.width(ideal: idealWidth)
+            TableColumn("Decoded Op", value: \.description.wrappedValue)
          }.frame(minHeight: minRowHeight * 15)
       }.padding(5)
-      
    }
 }
 
