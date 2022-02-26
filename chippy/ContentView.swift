@@ -13,15 +13,18 @@ import Chip8
 struct ContentView: View {
    @ObservedObject private var chip8 = Chip8()
    
-   @State var showInspector = true
-   @State var showControls = true
-   
    var body: some View {
       NavigationView {
          ScrollView {
             RomView(currentChip: chip8)
-            RegisterView(currentChip: chip8)
-            InstrView(currentChip: chip8)
+            RegisterView(pc: $chip8.visPC, i: $chip8.visI, sp: $chip8.visSP, dt: $chip8.visDT, st: $chip8.visST)
+            
+            HStack {
+               GeneralRegisterView(vx: $chip8.visVx)
+               StackView(stack: $chip8.visStack)
+            }.padding(0)
+            
+            InstrView(allInstructions: $chip8.allInstructions)
          }
          .toolbar {
             Button(action: { StopChipTimers(chip8: chip8) }) {
@@ -43,25 +46,13 @@ struct ContentView: View {
 }
 
 func StopChipTimers(chip8: Chip8) {
-   chip8.gameTimer?.invalidate();
-   chip8.delayTimer?.invalidate()
+   chip8.running = false
 }
 
 func StartChipTimers(chip8: Chip8) {
-   DispatchQueue.global(qos: .userInteractive).async {
-      chip8.gameTimer = Timer(timeInterval: 1/1000, target: chip8, selector: #selector(chip8.Step), userInfo: nil, repeats: true)
-      //         RunLoop.current.add(chip8.gameTimer!, forMode: .common)
-      let runLoop = RunLoop.current
-      runLoop.add(chip8.gameTimer!, forMode: .default)
-      runLoop.run()
-      
-   }
-   DispatchQueue.global(qos: .userInteractive).async {
-      chip8.delayTimer = Timer(timeInterval: 1/60, target: chip8, selector: #selector(chip8.delayStep), userInfo: nil, repeats: true)
-      //   RunLoop.current.add(chip8.delayTimer!, forMode: .common)
-      let runLoop = RunLoop.current
-      runLoop.add(chip8.delayTimer!, forMode: .default)
-      runLoop.run()
+   DispatchQueue.global(qos: .background).async {
+      chip8.running = true
+      chip8.go()
    }
 }
 
@@ -90,21 +81,15 @@ struct RomView: View {
    }
 }
 
-struct RowRegisterInfo: Identifiable {
-   let id = UUID()
-   let name: String
-   let value: String
-}
-
-
 struct InstrView: View {
    @Environment(\.defaultMinListRowHeight) var minRowHeight
-   @ObservedObject var currentChip: Chip8
+
    @State private var idealWidth: CGFloat = 20
+   @Binding var allInstructions: [InstructionInfo]
    
    var body: some View {
       GroupBox() {
-         Table($currentChip.allInstructions) {
+         Table($allInstructions) {
             TableColumn("") { Toggle("", isOn: $0.breakHere ) }.width(min: idealWidth, max: idealWidth)
             TableColumn("Address") { Text( String(format: "0x%04X", $0.address.wrappedValue) )}.width(ideal: idealWidth)
             TableColumn("Raw Op") { Text( String(format: "0x%04X", $0.instruction.wrappedValue) )}.width(ideal: idealWidth)
@@ -114,22 +99,77 @@ struct InstrView: View {
    }
 }
 
+struct Register: View {
+   let name: String
+   let value: String
+   
+   var body: some View {
+      HStack(alignment: .center, spacing: nil) {
+         Text("\(name)")
+            .frame(maxWidth: 30, alignment: .leading)
+         Divider()
+         Text("\(value)")
+            .frame(alignment: .leading)
+      }
+   }
+}
+
 struct RegisterView: View {
    @Environment(\.defaultMinListRowHeight) var minRowHeight
    
-   @ObservedObject var currentChip: Chip8
+   @Binding var pc: String
+   @Binding var i: String
+   @Binding var sp: String
+   @Binding var dt: String
+   @Binding var st: String
    
    var body: some View {
       GroupBox() {
-         Table {
-            TableColumn("Name") { Text($0.name) }
-            TableColumn("Value") { Text($0.value) }
-         } rows: {
-            ForEach(currentChip.visibileData.keys, id: \.self) {
-               TableRow(RowRegisterInfo(name: $0, value: currentChip.visibileData[$0] ?? ""))
-            }
-         }.frame(minHeight: minRowHeight * 15)
-            .cornerRadius(5)
+         List {
+            Register(name: "PC", value: pc)
+            Register(name: "I", value: i)
+            Register(name: "SP", value: sp)
+            Register(name: "DT", value: dt)
+            Register(name: "ST", value: st)
+         }
+         .frame(minHeight: minRowHeight * 6)
+         .listStyle(.inset(alternatesRowBackgrounds: true))
+         .cornerRadius(5)
       }.padding(5)
    }
 }
+
+struct StackView: View {
+   @Environment(\.defaultMinListRowHeight) var minRowHeight
+   
+   @Binding var stack: [UInt16]
+   
+   var body: some View {
+      GroupBox() {
+         List(stack.indices, id: \.self) { idx in
+            Register(name: String(format: "SP%01X", idx), value: String(format: "0x%04X", stack[idx]))
+         }
+         .frame(minHeight: minRowHeight * 15)
+         .listStyle(.inset(alternatesRowBackgrounds: true))
+         .cornerRadius(5)
+      }.padding(5)
+   }
+}
+
+struct GeneralRegisterView: View {
+   @Environment(\.defaultMinListRowHeight) var minRowHeight
+   
+   @Binding var vx: [UInt8]
+   
+   var body: some View {
+      GroupBox() {
+         List(vx.indices, id: \.self) { idx in
+            Register(name: String(format: "V%01X", idx), value: String(format: "0x%02X", vx[idx]))
+         }
+         .frame(minHeight: minRowHeight * 15)
+         .listStyle(.inset(alternatesRowBackgrounds: true))
+         .cornerRadius(5)
+      }.padding(5)
+   }
+}
+

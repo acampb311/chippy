@@ -8,7 +8,6 @@
 import Foundation
 import SpriteKit
 import SwiftUI
-import Collections
 
 let STACK_SIZE = 16
 let RAM_SIZE = 4096
@@ -33,12 +32,18 @@ public struct InstructionInfo : Identifiable {
 }
 
 public class Chip8 : ObservableObject {
-   @Published public var visibileData: OrderedDictionary<String,String>
    @Published public var allInstructions: [InstructionInfo]
+   @Published public var visPC: String
+   @Published public var visI: String
+   @Published public var visSP: String
+   @Published public var visDT: String
+   @Published public var visST: String
+   @Published public var visStack: [UInt16] = [UInt16](repeatElement(0x0000, count: STACK_SIZE))
+   @Published public var visVx: [UInt8] = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
+
    public var display: Display
-   public var gameTimer: Timer?
-   public var delayTimer: Timer?
    public var currentChip: Chip8?
+   public var running: Bool
    
    var registers = [UInt8](repeatElement(0x0, count: REGISTER_SIZE))
    var I: UInt16 = 0x00
@@ -76,29 +81,56 @@ public class Chip8 : ObservableObject {
       display.scaleMode = .aspectFill
       display.createDisplay(pixelsWide: 64, pixelsHigh: 32)
       allInstructions = []
-      visibileData = [:]
       romSize = 0
-
+      visPC = ""
+      visI = ""
+      visSP = ""
+      visDT = ""
+      visST = ""
+      
+      running = false
       PopulateVisibleData()
    }
    
    func PopulateVisibleData() {
       DispatchQueue.main.async {
-         self.visibileData["PC"] = String(format: "0x%04X", self.PC)
-         self.visibileData["I"] = String(format: "0x%04X", self.I)
-         self.visibileData["SP"] = String(format: "0x%04X", self.SP)
+         self.visPC = String(format: "0x%04X", self.PC)
+         self.visI = String(format: "0x%04X", self.I)
+         self.visSP = String(format: "0x%04X", self.SP)
+         self.visDT = String(format: "0x%04X", self.DT)
+         self.visST = String(format: "0x%04X", self.ST)
          
-         for i in self.stack.indices {
-            self.visibileData[String(format: "SP%01X", i)] = String(format: "0x%04X", self.stack[i])
+         for idx in 0..<STACK_SIZE {
+            self.visStack[idx] = self.stack[idx]
          }
          
-         for i in self.registers.indices {
-            self.visibileData[String(format: "V%01X", i)] = String(format: "0x%02X", self.registers[i])
+         for idx in 0..<REGISTER_SIZE {
+            self.visVx[idx] = self.registers[idx]
+         }
+
+      }
+   }
+   
+   public func go() {
+      var lastStep = Date().timeIntervalSinceReferenceDate
+      var lastDT = Date().timeIntervalSinceReferenceDate
+      
+      while (running)
+      {
+         let now = Date().timeIntervalSinceReferenceDate
+         
+         if (now - lastStep > 0.002 ) {
+            lastStep = now
+            Step()
+         }
+         
+         if (now - lastDT > 0.017 ) {
+            lastDT = now
+            delayStep()
          }
       }
    }
    
-   @objc
    public func delayStep() {
       
       if (DT > 0)
@@ -107,7 +139,6 @@ public class Chip8 : ObservableObject {
       }
    }
    
-   @objc
    public func Step() {
       
       let instruction = UInt32((UInt32(ram[Int(PC)+0]) << 8) |
@@ -117,8 +148,7 @@ public class Chip8 : ObservableObject {
          do {
             if let instr = allInstructions.first(where: {$0.instruction == instruction}) {
                if instr.breakHere && lastInstrBreak != instruction {
-                  gameTimer?.invalidate()
-                  delayTimer?.invalidate()
+                  running = false
                   lastInstrBreak = instruction
                   PC -= 2
                }
@@ -143,7 +173,7 @@ public class Chip8 : ObservableObject {
       SP = 0
       DT = 0
       ST = 0
-      
+
       allInstructions = []
       ram.replaceSubrange(0x200..<rom.count+0x200, with: rom)
       PC = 0x200 //Chip8 roms are traditionally loaded starting at byte 512, 0x200
@@ -151,6 +181,8 @@ public class Chip8 : ObservableObject {
       
 
       display.clear()
+      PopulateVisibleData()
+
       ProcessAllInstructions()
    }
    
